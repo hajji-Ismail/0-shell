@@ -1,0 +1,5 @@
+after the parsing i will return an vector of struct 
+thet have the following args 
+command: string
+arg :  vec<String>
+flag : vec<String>
