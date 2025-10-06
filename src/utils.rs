@@ -7,7 +7,9 @@ pub fn input_loop() {
         let mut user_input = String::new();
         io::stdin().read_line(&mut user_input).unwrap();
         let input = user_input.trim();
+        if input == "exit" {
+            break;
+        }
 
-        println!("${input}");
     }
 }
