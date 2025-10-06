@@ -1,5 +1,6 @@
 use std::io;
  use std::io::Write;
+
 pub fn input_loop() {
     'main: loop {
         print!("$");
@@ -8,7 +9,7 @@ pub fn input_loop() {
         io::stdin().read_line(&mut user_input).unwrap();
         let input = user_input.trim();
         if input == "exit" {
-            break;
+            break 'main;
         }
 
     }
