@@ -1,3 +1,5 @@
+mod utils;
+use utils::*;
 fn main() {
-    println!("Hello, world!");
+   input_loop();
 }
