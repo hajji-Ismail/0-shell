@@ -1,5 +1,5 @@
 use std::io::{self, Write};
-
+use crate::commands::*;
 pub fn input_loop() {
     'main: loop {
         print!("$ ");
@@ -18,6 +18,9 @@ pub fn input_loop() {
 
                 if input == "exit" {
                     break 'main;
+                }
+                if input == "pwd" {
+                    pwd::pwd();
                 }
 
                 println!("You entered: {}", input);

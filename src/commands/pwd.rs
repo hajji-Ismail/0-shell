@@ -1,3 +1,13 @@
+use std::env;
+
 pub fn pwd(){
-    // 77777777777
+    // match en
+    match env::current_dir() {
+        Ok(path) => {
+            println!("{}",path.display())
+        },
+        Err(e)=>{
+            eprintln!("{}",e)
+        }
+    }
 }
