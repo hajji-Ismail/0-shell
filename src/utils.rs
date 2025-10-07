@@ -1,4 +1,4 @@
-use std::{io::{self, Write}, };
+use std::{ io::{self, Write} };
 #[derive(Debug)]
 pub struct Parsing {
     pub command: String,
@@ -27,24 +27,36 @@ pub fn input_loop() {
                 if input !="" {
 
                     let parsing_res = parser(input);
-                    println!("You entered: {:?}", parsing_res);
+                    match parsing_res {
+                        Ok(res) => match res .command.as_str() {
+                            _=> println!("not implemented yet")
+                            
+                        }, 
+                        Err(err)=> {
+                            println!("{err}");
+                            continue;
+                        }
+                    }
                 } 
 
-            }
-            Err(e) => {
+            }, 
+             Err(e) => {
                 eprintln!("Error reading input: {}", e);
                 break 'main;
             }
+
+           
         }
     }
 }
-fn parser(input : &str) -> Parsing{
+fn parser(input : &str) ->Result<Parsing, String> {
     let tokens : Vec<&str>=  input.split_whitespace().collect();
     let command = if !tokens.is_empty() {
         tokens[0].to_string()
     } else {
         "".to_string()  // Or handle empty input differently
     };
+
     let mut args : Vec<String> = vec![];
     let mut flags : Vec<String> = vec![];
         for token in &tokens[1..] {
@@ -54,6 +66,13 @@ fn parser(input : &str) -> Parsing{
             args.push(token.to_string());
         }
     }
-    Parsing { command, arg: args, flag: flags }
+match command.as_str() {
+    "echo" | "cd" | "ls" | "pwd" | "cat" | "cp" | "rm" | "mv" | "mkdir" =>
+        Ok(Parsing { command, arg: args, flag: flags }),
+
+    _ => Err(format!("Command {} not found", command)),
+}
+
+
 
 }
