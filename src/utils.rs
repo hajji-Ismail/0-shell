@@ -53,7 +53,7 @@ pub fn input_loop() {
     }
 }
 fn parser(input : &str) ->Result<Parsing, String> {
-    let tokens : Vec<&str>=  input.split_whitespace().collect();
+    let tokens = tokenize(input);
     let command = if !tokens.is_empty() {
         tokens[0].to_string()
     } else {
@@ -78,4 +78,43 @@ match command.as_str() {
 
 
 
+}
+fn tokenize(input: &str) -> Vec<String> {
+    let mut tokens = Vec::new();
+    let mut current = String::new();
+    let mut in_quotes = false;
+    let mut quote_char = '\0'; // stores which quote type we're inside
+
+    for c in input.chars() {
+        match c {
+            '"' | '\'' => {
+                if in_quotes && c == quote_char {
+                    // closing the same type of quote
+                    in_quotes = false;
+                } else if !in_quotes {
+                    // opening quote
+                    in_quotes = true;
+                    quote_char = c;
+                } else {
+                    // inside one type of quote, but different char (e.g., "it's fine")
+                    current.push(c);
+                }
+            }
+            ' ' if !in_quotes => {
+                if !current.is_empty() {
+                    tokens.push(current.clone());
+                    current.clear();
+                }
+            }
+            _ => {
+                current.push(c);
+            }
+        }
+    }
+
+    if !current.is_empty() {
+        tokens.push(current);
+    }
+
+    tokens
 }
