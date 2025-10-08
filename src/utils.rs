@@ -1,6 +1,6 @@
 use std::{ io::{self, Write} };
 
-use crate::commands::pwd;
+use crate::commands::{pwd, ls};
 #[derive(Debug)]
 pub struct Parsing {
     pub command: String,
@@ -32,6 +32,7 @@ pub fn input_loop() {
                     match parsing_res {
                         Ok(res) => match res .command.as_str() {
                             "pwd" => pwd::pwd(),
+                            "ls" => ls::ls(res),
                             _=> println!("not implemented yet")
                             
                         }, 
