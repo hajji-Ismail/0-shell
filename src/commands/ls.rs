@@ -42,5 +42,49 @@ pub fn ls(parsing: Parsing) {
                 println!();
             }
         }
+    } else {
+        let flag_tuple=flag(parsing.flag);
+      match flag_tuple  {
+        Err(e) => {
+            println!("{e}")
+        },
+        Ok(res ) => {
+              println!("{:?}",res)
+        }
+
+          
+      }
+        
     }
+}
+
+fn flag (flags : Vec<String>) -> Result<(bool , bool , bool ),String>{
+    let mut all = false ; 
+    let mut long = false ;
+    let mut classify = false ; 
+    for flag in flags {
+        if flag.starts_with("--"){
+            match flag.as_str(){
+                "--long"=> long = true ,
+                "--all" => all = true ,
+                "--classify"=> classify = true,
+                _=> return Err(format!("unrecognized option {}", flag)),
+
+            }
+        } else {
+            let sub_flag = flag.strip_prefix("-").unwrap();
+            for c in sub_flag.chars() {
+                match c {
+                    'a'=> all = true ,
+                    'l'=> long = true,
+                    'F'=> classify = true,
+                    _=> return Err(format!("ls: invalid option -- '{}'", sub_flag))
+                    
+                }
+            }
+            
+        }
+    }
+
+Ok((all, long,classify))
 }
