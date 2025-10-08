@@ -68,7 +68,7 @@ fn flag (flags : Vec<String>) -> Result<(bool , bool , bool ),String>{
                 "--long"=> long = true ,
                 "--all" => all = true ,
                 "--classify"=> classify = true,
-                _=> return Err(format!("unrecognized option {}", flag)),
+                _=> return Err(format!("ls: unrecognized option {}", flag)),
 
             }
         } else {
