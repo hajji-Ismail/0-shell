@@ -2,7 +2,6 @@ use crate::utils::Parsing;
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
 use std::time::{SystemTime, UNIX_EPOCH};
-use std::io;
 use std::os::unix::fs::FileTypeExt;
 
 fn flag(flags: Vec<String>) -> Result<(bool, bool, bool), String> {
