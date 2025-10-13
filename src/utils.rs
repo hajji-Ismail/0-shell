@@ -33,7 +33,7 @@ pub fn input_loop() {
                         Ok(res) => match res .command.as_str() {
                             "pwd" => pwd::pwd(),
                             "echo" => commands::echo::echo(res.arg),
-                            "cd" => commands::cd::cd(res),
+                            "cd" => commands::cd::cd(Some(&res.arg.join(""))),
                             "ls" => commands::ls::ls(res),
                             _=> println!("not implemented yet")
 
