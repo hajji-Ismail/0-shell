@@ -35,6 +35,7 @@ pub fn input_loop() {
                             "echo" => commands::echo::echo(res.arg),
                             "cd" => commands::cd::cd(res.arg.join("")),
                             "ls" => commands::ls::ls(res),
+                            "mkdir"=> commands::mkdir::mkdir(res),
                             _=> println!("not implemented yet")
 
                             
