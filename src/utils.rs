@@ -30,8 +30,8 @@ pub fn input_loop() {
 
                     let parsing_res = parser(input);
                     match parsing_res {
-                        Ok(res) => match res .command.as_str() {
-                            "pwd" => pwd::pwd(),
+                        Ok(res) => match res.command.as_str() {
+                            "pwd" => commands::pwd::pwd(res),
                             "echo" => commands::echo::echo(res.arg),
                             "cd" => commands::cd::cd(Some(&res.arg.join(""))),
                             "ls" => commands::ls::ls(res),
