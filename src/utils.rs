@@ -34,6 +34,7 @@ pub fn input_loop() {
                             "pwd" => commands::pwd::pwd(res),
                             "echo" => commands::echo::echo(res.arg),
                             "cd" => commands::cd::cd(Some(&res.arg.join(""))),
+                            "rm" => commands::rm::rm(res),
                             "ls" => commands::ls::ls(res),
                             _=> println!("not implemented yet")
 
