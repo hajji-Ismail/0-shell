@@ -37,6 +37,8 @@ pub fn input_loop() {
                             "ls" => commands::ls::ls(res),
                             "mkdir"=> commands::mkdir::mkdir(res),
                             "cp" => cp::cp(res),
+                            "cat"=>cat::cat(res),
+                          
                             _=> println!("not implemented yet")
 
                             

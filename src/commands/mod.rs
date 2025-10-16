@@ -5,3 +5,4 @@ pub mod echo;
 pub mod cd;
 pub mod mkdir;
 pub mod cp;
+pub mod cat;
