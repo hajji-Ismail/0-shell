@@ -36,6 +36,10 @@ pub fn input_loop() {
                             "cd" => commands::cd::cd(Some(&res.arg.join(""))),
                             "rm" => commands::rm::rm(res),
                             "ls" => commands::ls::ls(res),
+                            "mkdir"=> commands::mkdir::mkdir(res),
+                            "cp" => cp::cp(res),
+                            "cat"=>cat::cat(res),
+                          
                             _=> println!("not implemented yet")
 
                             
