@@ -29,6 +29,7 @@ pub fn input_loop() {
                 if input !="" {
 
                     let parsing_res = parser(input);
+                    println!("{:?}",parsing_res);
                     match parsing_res {
                         Ok(res) => match res.command.as_str() {
                             "pwd" => commands::pwd::pwd(res),
@@ -41,7 +42,7 @@ pub fn input_loop() {
                             "cat"=>cat::cat(res),
                             "mv"=> mv::mv(res),
                           
-                            _=> println!("not implemented yet")
+                            _=>external::run_external_command(&res),
 
                             
                         }, 
@@ -79,12 +80,9 @@ fn parser(input : &str) ->Result<Parsing, String> {
             args.push(token.to_string());
         }
     }
-match command.as_str() {
-    "echo" | "cd" | "ls" | "pwd" | "cat" | "cp" | "rm" | "mv" | "mkdir" =>
-        Ok(Parsing { command, arg: args, flag: flags }),
 
-    _ => Err(format!("Command {} not found", command)),
-}
+        Ok(Parsing { command, arg: args, flag: flags })
+
 
 
 
