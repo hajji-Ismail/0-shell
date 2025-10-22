@@ -111,6 +111,7 @@ fn tokenize(input: &str) -> Vec<String> {
 
     // didnt enter closing cotes  so prpmpte user to enter closing cotes
     if in_quotes {
+        tokens.last_mut().expect("No token to modify").push('\n');
         loop {
             if quote_char == '"' {
                 print!("dquote>");
@@ -118,17 +119,25 @@ fn tokenize(input: &str) -> Vec<String> {
                 print!("quote>");
             }
 
-            io::stdout().flush().unwrap(); 
+            io::stdout().flush().unwrap();
 
             let mut user_input = String::new();
             let _ = io::stdin().read_line(&mut user_input);
 
             if let Some(pos) = user_input.find(quote_char) {
                 let (first_part, second_part) = user_input.split_at(pos);
+
                 tokens.last_mut().expect("No token to modify").push_str(first_part);
-                tokens.push(second_part.to_string());
+
+                let last = if let Some(last_part) = second_part.strip_suffix(quote_char) {
+                    last_part.to_string()
+                } else {
+                    second_part.to_string()
+                };
+
+                tokens.push(last);
                 break;
-            }else {
+            } else {
                 tokens.last_mut().expect("No token to modify").push_str(&user_input);
             }
         }
