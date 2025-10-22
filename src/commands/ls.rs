@@ -12,7 +12,7 @@ fn flag(flags: Vec<String>) -> Result<(bool, bool, bool), String> {
     for flag in flags {
         if flag.starts_with("--") {
             match flag.as_str() {
-                "--long" => long = true,
+               
                 "--all" => all = true,
                 "--classify" => classify = true,
                 _ => return Err(format!("ls: unrecognized option '{}'", flag)),
@@ -112,13 +112,15 @@ fn print_long(metadata: &fs::Metadata) {
 
     let size = metadata.len();
     let modified = metadata.modified().unwrap_or(SystemTime::UNIX_EPOCH);
+    // fix the hard code 
     let seconds = modified
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
         .as_secs();
-    print!("{}{} {:>6} {:>10} ", file_type, perms, 1, size);
+    
+    print!("{}{} {:>1} {:>1} ", file_type, perms, 1, size);
 
-    use chrono::{DateTime, Local, NaiveDateTime, TimeZone};
+    use chrono::{ Local,  TimeZone};
     let datetime = Local.timestamp_opt(seconds as i64, 0).unwrap();
     print!("{} ", datetime.format("%b %e %H:%M"));
 }
