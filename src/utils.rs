@@ -29,7 +29,6 @@ pub fn input_loop() {
                 if input !="" {
 
                     let parsing_res = parser(input);
-                    println!("{:?}",parsing_res);
                     match parsing_res {
                         Ok(res) => match res.command.as_str() {
                             "pwd" => commands::pwd::pwd(res),
