@@ -106,25 +106,30 @@ fn tokenize(input: &str) -> Vec<String> {
     }
 
     if !current.is_empty() {
-        tokens.push(current);
+        tokens.push(current.clone());
     }
 
     // didnt enter closing cotes  so prpmpte user to enter closing cotes
     if in_quotes {
         loop {
-            print!("quote>");
+            if quote_char == '"' {
+                print!("dquote>");
+            } else if quote_char == '\'' {
+                print!("quote>");
+            }
+
             io::stdout().flush().unwrap(); 
 
             let mut user_input = String::new();
             let _ = io::stdin().read_line(&mut user_input);
-
-            let user_input = user_input.trim();
 
             if let Some(pos) = user_input.find(quote_char) {
                 let (first_part, second_part) = user_input.split_at(pos);
                 tokens.last_mut().expect("No token to modify").push_str(first_part);
                 tokens.push(second_part.to_string());
                 break;
+            }else {
+                tokens.last_mut().expect("No token to modify").push_str(&user_input);
             }
         }
     }
