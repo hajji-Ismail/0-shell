@@ -1,8 +1,10 @@
 use crate::utils::Parsing;
+use chrono::{Local, TimeZone};
 use std::fs;
-use std::os::unix::fs::PermissionsExt;
-use std::time::{SystemTime, UNIX_EPOCH};
 use std::os::unix::fs::FileTypeExt;
+use std::os::unix::fs::{MetadataExt, PermissionsExt};
+use std::time::{SystemTime, UNIX_EPOCH};
+use users::{get_group_by_gid, get_user_by_uid};
 
 fn flag(flags: Vec<String>) -> Result<(bool, bool, bool), String> {
     let mut all = false;
@@ -12,7 +14,6 @@ fn flag(flags: Vec<String>) -> Result<(bool, bool, bool), String> {
     for flag in flags {
         if flag.starts_with("--") {
             match flag.as_str() {
-               
                 "--all" => all = true,
                 "--classify" => classify = true,
                 _ => return Err(format!("ls: unrecognized option '{}'", flag)),
@@ -56,6 +57,38 @@ pub fn ls(tokens: Parsing) {
                     Ok(entries_iter) => {
                         let mut entries: Vec<_> = entries_iter.filter_map(|e| e.ok()).collect();
                         entries.sort_by_key(|e| e.file_name());
+                        if long {
+                            let mut totale = 0;
+                            for path in paths.iter() {
+                                match fs::read_dir(path) {
+                                    Ok(entries_iter) => {
+                                        let entries: Vec<_> =
+                                            entries_iter.filter_map(|e| e.ok()).collect();
+
+                                        for entry in entries {
+                                            let name =
+                                                entry.file_name().to_string_lossy().into_owned();
+
+                                            
+                                            let metadata = match entry.metadata() {
+                                                Ok(m) => m,
+                                                Err(_) => continue,
+                                            };
+                                            if name.starts_with('.') && !all {
+                                                continue;
+                                            }
+
+                                            totale += metadata.blocks()
+                                        }
+                                    }
+                                    Err(err) => {
+                                        eprintln!("ls: cannot access '{}': {}", path, err);
+                                    }
+                                }
+                                totale = totale
+                            }
+                            println!("total {}", totale / 2)
+                        }
 
                         for entry in entries {
                             let name = entry.file_name().to_string_lossy().into_owned();
@@ -111,16 +144,35 @@ fn print_long(metadata: &fs::Metadata) {
     );
 
     let size = metadata.len();
+
     let modified = metadata.modified().unwrap_or(SystemTime::UNIX_EPOCH);
-    // fix the hard code 
+    // fix the hard code
     let seconds = modified
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
         .as_secs();
-    
-    print!("{}{} {:>1} {:>1} ", file_type, perms, 1, size);
 
-    use chrono::{ Local,  TimeZone};
+    let uid = metadata.uid();
+    let gid = metadata.gid();
+
+    let user = get_user_by_uid(uid)
+        .and_then(|u| u.name().to_str().map(|s| s.to_string()))
+        .unwrap_or(uid.to_string());
+
+    let group = get_group_by_gid(gid)
+        .and_then(|g| g.name().to_str().map(|s| s.to_string()))
+        .unwrap_or(gid.to_string());
+
+    print!(
+        "{}{} {:>1} {} {} {:>1} ",
+        file_type,
+        perms,
+        metadata.nlink(),
+        user,
+        group,
+        size
+    );
+
     let datetime = Local.timestamp_opt(seconds as i64, 0).unwrap();
     print!("{} ", datetime.format("%b %e %H:%M"));
 }
