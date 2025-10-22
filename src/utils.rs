@@ -1,6 +1,6 @@
-use std::{ io::{self, Write} };
+use std::{ io::{ self, Write } };
 
-use crate::commands::{self, *};
+use crate::commands::{ self, * };
 #[derive(Debug)]
 pub struct Parsing {
     pub command: String,
@@ -21,57 +21,51 @@ pub fn input_loop() {
             }
             Ok(_) => {
                 let input = user_input.trim();
-
                 if input == "exit" {
                     break 'main;
                 }
-                if input !="" {
-
+                if input != "" {
                     let parsing_res = parser(input);
                     match parsing_res {
-                        Ok(res) => match res.command.as_str() {
-                            "pwd" => commands::pwd::pwd(res),
-                            "echo" => commands::echo::echo(res.arg),
-                            "cd" => commands::cd::cd(Some(&res.arg.join(""))),
-                            "rm" => commands::rm::rm(res),
-                            "ls" => commands::ls::ls(res),
-                            "mkdir"=> commands::mkdir::mkdir(res),
-                            "cp" => cp::cp(res),
-                            "cat"=>cat::cat(res),
-                            "mv"=> mv::mv(res),
-                          
-                            _=>external::run_external_command(&res),
+                        Ok(res) =>
+                            match res.command.as_str() {
+                                "pwd" => commands::pwd::pwd(res),
+                                "echo" => commands::echo::echo(res.arg),
+                                "cd" => commands::cd::cd(Some(&res.arg.join(""))),
+                                "rm" => commands::rm::rm(res),
+                                "ls" => commands::ls::ls(res),
+                                "mkdir" => commands::mkdir::mkdir(res),
+                                "cp" => cp::cp(res),
+                                "cat" => cat::cat(res),
+                                "mv" => mv::mv(res),
 
-                            
-                        }, 
-                        Err(err)=> {
+                                _ => external::run_external_command(&res),
+                            }
+                        Err(err) => {
                             println!("{err}");
                             continue;
                         }
                     }
-                } 
-
-            }, 
-             Err(e) => {
+                }
+            }
+            Err(e) => {
                 eprintln!("Error reading input: {}", e);
                 break 'main;
             }
-
-           
         }
     }
 }
-fn parser(input : &str) ->Result<Parsing, String> {
+fn parser(input: &str) -> Result<Parsing, String> {
     let tokens = tokenize(input);
     let command = if !tokens.is_empty() {
         tokens[0].to_string()
     } else {
-        "".to_string()  // Or handle empty input differently
+        "".to_string() // Or handle empty input differently
     };
 
-    let mut args : Vec<String> = vec![];
-    let mut flags : Vec<String> = vec![];
-        for token in &tokens[1..] {
+    let mut args: Vec<String> = vec![];
+    let mut flags: Vec<String> = vec![];
+    for token in &tokens[1..] {
         if token.starts_with('-') {
             flags.push(token.to_string());
         } else {
@@ -79,38 +73,31 @@ fn parser(input : &str) ->Result<Parsing, String> {
         }
     }
 
-        Ok(Parsing { command, arg: args, flag: flags })
-
-
-
-
+    Ok(Parsing { command, arg: args, flag: flags })
 }
 fn tokenize(input: &str) -> Vec<String> {
     let mut tokens = Vec::new();
     let mut current = String::new();
     let mut in_quotes = false;
-    let mut quote_char = '\0'; // stores which quote type we're inside
+    let mut quote_char = '\0';
 
     for c in input.chars() {
         match c {
             '"' | '\'' => {
                 if in_quotes && c == quote_char {
-                    // closing the same type of quote
                     in_quotes = false;
                 } else if !in_quotes {
                     // opening quote
                     in_quotes = true;
                     quote_char = c;
                 } else {
-                    // inside one type of quote, but different char (e.g., "it's fine")
+                    // inside one type of quote, but different char ("it's fine")
                     current.push(c);
                 }
             }
-            ' ' if !in_quotes => {
-                if !current.is_empty() {
-                    tokens.push(current.clone());
-                    current.clear();
-                }
+            ' ' if !in_quotes && !current.is_empty() => {
+                tokens.push(current.clone());
+                current.clear();
             }
             _ => {
                 current.push(c);
@@ -120,6 +107,19 @@ fn tokenize(input: &str) -> Vec<String> {
 
     if !current.is_empty() {
         tokens.push(current);
+    }
+
+    // didnt enter closing cotes  so prpmpte user to enter closing cotes
+    if in_quotes {
+        loop {
+            let mut user_input = String::new();
+            let _ = io::stdin().read_line(&mut user_input);
+            if user_input.contains(quote_char) {
+                let parts =  user_input.split(quote_char);
+                let last =  tokens.last()
+                break;
+            }
+        }
     }
 
     tokens
