@@ -17,7 +17,6 @@ pub fn input_loop() {
 
         match bytes_read {
             Ok(0) => {
-
                 break 'main;
             }
             Ok(_) => {
