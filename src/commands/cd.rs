@@ -10,7 +10,7 @@ pub fn cd(path: Option<&str>) {
         },
     };
 
-    println!("{:?}", target);
+
 
     if let Err(e) = env::set_current_dir(&target) {
         eprintln!("cd: {}", e);

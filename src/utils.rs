@@ -35,7 +35,12 @@ pub fn input_loop() {
                             "cd" => commands::cd::cd(Some(&res.arg.join(""))),
                             "rm" => commands::rm::rm(res),
                             "ls" => commands::ls::ls(res),
-                            _=> println!("not implemented yet")
+                            "mkdir"=> commands::mkdir::mkdir(res),
+                            "cp" => cp::cp(res),
+                            "cat"=>cat::cat(res),
+                            "mv"=> mv::mv(res),
+                          
+                            _=>external::run_external_command(&res),
 
                             
                         }, 
@@ -73,12 +78,9 @@ fn parser(input : &str) ->Result<Parsing, String> {
             args.push(token.to_string());
         }
     }
-match command.as_str() {
-    "echo" | "cd" | "ls" | "pwd" | "cat" | "cp" | "rm" | "mv" | "mkdir" =>
-        Ok(Parsing { command, arg: args, flag: flags }),
 
-    _ => Err(format!("Command {} not found", command)),
-}
+        Ok(Parsing { command, arg: args, flag: flags })
+
 
 
 

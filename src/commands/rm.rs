@@ -4,13 +4,22 @@ use std::path::Path;
 use crate::utils::Parsing;
 
 pub fn rm(data: Parsing) {
+    let recursive = if  data.flag.join("") == "-r".to_string() {
+        true
+    } else {
+        false 
+    } ;
+        if !recursive && ! data.flag.is_empty() {
+            println!("rm: invalid option -- {}", data.flag[0]);
+            return
+        }
+    
     if data.arg.is_empty() {
         eprintln!("rm: missing operand");
-        eprintln!("Try 'rm --help' for more information.");
         return;
     }
 
-    let recursive = data.flag.contains(&"-r".to_string());
+    
 
     for arg in data.arg {
         let path = Path::new(&arg);

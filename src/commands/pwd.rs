@@ -4,8 +4,7 @@ use crate::utils::Parsing;
 
 pub fn pwd(data: Parsing){
   if !data.flag.is_empty() {
-        eprintln!("0-shel: pwd: {:?}: invalid option", data.flag);
-        eprintln!("pwd: usage: pwd [-LP]");
+        eprintln!(" pwd: {:?}: invalid option", data.flag);
         return;
     }
     match env::current_dir() {
