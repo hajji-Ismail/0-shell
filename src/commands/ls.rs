@@ -70,6 +70,11 @@ pub fn ls(tokens: Parsing) {
                                         print_long(&meta_parent, "..");
                                     }
                                 }
+                            } else {
+                                if all {
+                                    println!(".");
+                                    println!("..");
+                                }
                             }
 
                             match fs::read_dir(path) {
@@ -105,6 +110,7 @@ pub fn ls(tokens: Parsing) {
                             if long {
                                 print_long(&metadata, path);
                             } else if classify {
+                                
                                 let ft = metadata.file_type();
                                 let suffix = if ft.is_dir() {
                                     "/"
