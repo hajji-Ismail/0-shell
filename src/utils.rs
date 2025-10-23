@@ -23,7 +23,7 @@ pub fn input_loop() {
             Ok(_) => {
                 let input = user_input.trim();
                 if input == "exit" {
-                    break 'main;
+                    break 'main; 
                 }
                 if input != "" {
                     let parsing_res = parser(input);
@@ -79,6 +79,8 @@ fn parser(input: &str) -> Result<Parsing, String> {
 
     Ok(Parsing { command, arg: args, flag: flags })
 }
+
+
 fn tokenize(input: &str) -> (Vec<String> , bool){
     let mut tokens = Vec::new();
     let mut current = String::new();
