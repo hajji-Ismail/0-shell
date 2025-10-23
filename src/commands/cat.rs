@@ -11,10 +11,10 @@ pub fn cat(input: Parsing) {
     if input.arg.is_empty() {
         'cat: loop {
             io::stdout().flush().unwrap();
-
+            
             let mut user_input = String::new();
             let bytes_read = io::stdin().read_line(&mut user_input);
-
+            
             match bytes_read {
                 Ok(0) => {
                     break 'cat;

@@ -30,7 +30,7 @@ pub fn cp(input: Parsing) {
 
             match fs::copy(src_path, &dest_path) {
                 Ok(_) => {}
-                Err(err) => eprintln!("cp: cannot copy '{}': {}", src, err),
+                Err(err) => eprintln!("cp:'{}': {}", src, err),
             }
         }
     }
