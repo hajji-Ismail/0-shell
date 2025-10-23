@@ -81,57 +81,99 @@ fn parser(input: &str) -> Result<Parsing, String> {
 }
 
 
-fn tokenize(input: &str) -> (Vec<String> , bool){
+fn tokenize(input: &str) -> (Vec<String>, bool) {
     let mut tokens = Vec::new();
     let mut current = String::new();
     let mut in_quotes = false;
     let mut quote_char = '\0';
+    let mut escape_next = false; 
+    let mut telda = false;
 
-    let  mut telda  = false ;
-    for c in input.chars() {
+    let mut chars = input.chars().peekable();
+
+    while let Some(c) = chars.next() {
+        if escape_next {
+            // Handle escaped newline (line continuation)
+            if c == '\n' {
+                // skip both '\' and '\n'
+                escape_next = false;
+                continue;
+            }
+            // Otherwise, keep literal character (escaped)
+            current.push(c);
+            escape_next = false;
+            continue;
+        }
+
         match c {
+            '\\' => {
+                // Backslash logic
+                if in_quotes {
+                    // Inside double quotes: only escapes $, `, ", \, or newline
+                    if quote_char == '"' {
+                        match chars.peek() {
+                            Some('$') | Some('`') | Some('"') | Some('\\') => {
+                                escape_next = true;
+                            }
+                            Some('\n') => {
+                                chars.next(); // skip newline
+                            }
+                            _ => current.push('\\'), // literal backslash
+                        }
+                    } else {
+                        // Inside single quotes: literal backslash
+                        current.push('\\');
+                    }
+                } else {
+                    // Outside quotes: escape next char (including space)
+                    escape_next = true;
+                }
+            }
+
             '"' | '\'' => {
                 if in_quotes && c == quote_char {
+                    // Closing the same quote
                     in_quotes = false;
                 } else if !in_quotes {
-                    // opening quote
+                    // Opening a quote
                     in_quotes = true;
                     quote_char = c;
                 } else {
-                    // inside one type of quote, but different char ("it's fine")
+                    // Inside a quote, but different quote type (e.g., "it's fine")
                     current.push(c);
                 }
             }
-            ' ' if !in_quotes && !current.is_empty() => {
-                telda =  false ;
-                tokens.push(current.clone());
-                current.clear()
+
+            ' ' | '\t' if !in_quotes => {
+                if !current.is_empty() {
+                    tokens.push(current.clone());
+                    current.clear();
+                    telda = false;
+                }
             }
+
+            '~' if !in_quotes && current.is_empty() => {
+                telda = true;
+                let home = match env::var("HOME") {
+                    Ok(home) => Path::new(&home).to_path_buf(),
+                    Err(_) => Path::new("/").to_path_buf(),
+                };
+                if let Some(path_str) = home.to_str() {
+                    current.push_str(path_str);
+                }
+            }
+
             _ => {
-                if !in_quotes && current.is_empty() && c == '~' {
-                    telda =  true ;
-                    let home = match env::var("HOME") {
-                        Ok(home) => Path::new(&home).to_path_buf(),
-                        Err(_) => Path::new("/").to_path_buf(),
-                    };
-                    if let Some(path_str) = home.to_str() {
-                        current.push_str(path_str);
-                    }
-                } else  {
-                    if telda && in_quotes && c != '/' {
-                        current = "~".to_string() ;
-                        telda = false
-                    }else if telda &&c == '/' {
-                        println!("ho");
-                        telda =false
-
-                    } else if telda && !in_quotes  && c != '/' {
-                     return (tokens, true)
-                    }
-
-                    current.push(c);
+                if telda && in_quotes && c != '/' {
+                    current = "~".to_string();
+                    telda = false;
+                } else if telda && c == '/' {
+                    telda = false;
+                } else if telda && !in_quotes && c != '/' {
+                    return (tokens, true);
                 }
 
+                current.push(c);
             }
         }
     }
@@ -140,7 +182,7 @@ fn tokenize(input: &str) -> (Vec<String> , bool){
         tokens.push(current.clone());
     }
 
-    // didnt enter closing cotes  so prpmpte user to enter closing cotes
+    // Handle unterminated quotes
     if in_quotes {
         tokens.last_mut().expect("No token to modify").push('\n');
         loop {
@@ -157,7 +199,6 @@ fn tokenize(input: &str) -> (Vec<String> , bool){
 
             if let Some(pos) = user_input.find(quote_char) {
                 let (first_part, second_part) = user_input.split_at(pos);
-                // println!("{}1 {}2 ", first_part, second_part);
                 tokens.last_mut().expect("No token to modify").push_str(first_part);
 
                 let last = if let Some(last_part) = second_part.strip_prefix(quote_char) {
@@ -182,5 +223,5 @@ fn tokenize(input: &str) -> (Vec<String> , bool){
         }
     }
 
-   ( tokens, false)
+    (tokens, false)
 }
