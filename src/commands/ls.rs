@@ -1,8 +1,11 @@
 use crate::utils::Parsing;
+use chrono::{Local, TimeZone};
 use std::fs;
-use std::os::unix::fs::PermissionsExt;
-use std::time::{SystemTime, UNIX_EPOCH};
 use std::os::unix::fs::FileTypeExt;
+use std::os::unix::fs::{MetadataExt, PermissionsExt};
+use std::time::{SystemTime, UNIX_EPOCH};
+ use nix::libc;
+use users::{get_group_by_gid, get_user_by_uid};
 
 fn flag(flags: Vec<String>) -> Result<(bool, bool, bool), String> {
     let mut all = false;
@@ -12,7 +15,6 @@ fn flag(flags: Vec<String>) -> Result<(bool, bool, bool), String> {
     for flag in flags {
         if flag.starts_with("--") {
             match flag.as_str() {
-               
                 "--all" => all = true,
                 "--classify" => classify = true,
                 _ => return Err(format!("ls: unrecognized option '{}'", flag)),
@@ -32,6 +34,7 @@ fn flag(flags: Vec<String>) -> Result<(bool, bool, bool), String> {
     Ok((all, long, classify))
 }
 
+
 pub fn ls(tokens: Parsing) {
     let flag_tuple = if !tokens.flag.is_empty() {
         flag(tokens.flag)
@@ -48,55 +51,112 @@ pub fn ls(tokens: Parsing) {
             };
 
             for path in paths.iter() {
-                if paths.len() > 1 {
-                    println!("{}:", path);
-                }
-
-                match fs::read_dir(path) {
-                    Ok(entries_iter) => {
-                        let mut entries: Vec<_> = entries_iter.filter_map(|e| e.ok()).collect();
-                        entries.sort_by_key(|e| e.file_name());
-
-                        for entry in entries {
-                            let name = entry.file_name().to_string_lossy().into_owned();
-
-                            if name.starts_with('.') && !all {
-                                continue;
+                match fs::metadata(path) {
+                    Ok(metadata) => {
+                        if metadata.is_dir() {
+                            if paths.len() > 1 {
+                                println!("{}:", path);
                             }
-
-                            let metadata = match entry.metadata() {
-                                Ok(m) => m,
-                                Err(_) => continue,
-                            };
 
                             if long {
-                                print_long(&metadata);
+                                total(vec![path.clone()], all);
+
+                                if all {
+                                    if let Ok(meta_current) = fs::metadata(path) {
+                                        print_long(&meta_current, ".");
+                                    }
+                                    let parent_path = format!("{}/..", path);
+                                    if let Ok(meta_parent) = fs::metadata(&parent_path) {
+                                        print_long(&meta_parent, "..");
+                                    }
+                                }
+                            } else {
+                                if all {
+                                    println!(".");
+                                    println!("..");
+                                }
                             }
 
-                            if classify {
-                                print_classified(&entry, &name);
+                            match fs::read_dir(path) {
+                                Ok(entries_iter) => {
+                                    let mut entries: Vec<_> = entries_iter.filter_map(|e| e.ok()).collect();
+                                    entries.sort_by_key(|e| e.file_name());
+
+                                    for entry in entries {
+                                        let name = entry.file_name().to_string_lossy().into_owned();
+                                        if name.starts_with('.') && !all {
+                                            continue;
+                                        }
+
+                                        if let Ok(meta) = entry.metadata() {
+                                            if long {
+                                                print_long(&meta, &name);
+                                            } else if classify {
+                                                print_classified(&entry, &name);
+                                            } else {
+                                                println!("{}", name);
+                                            }
+                                        }
+                                    }
+                                }
+                                Err(err) => eprintln!("ls: cannot access '{}': {}", path, err),
+                            }
+
+                            if paths.len() > 1 {
+                                println!();
+                            }
+                        } else {
+                            
+                            if long {
+                                print_long(&metadata, path);
+                            } else if classify {
+                                
+                                let ft = metadata.file_type();
+                                let suffix = if ft.is_dir() {
+                                    "/"
+                                } else if ft.is_symlink() {
+                                    "@"
+                                } else if ft.is_socket() {
+                                    "="
+                                } else if ft.is_fifo() {
+                                    "|"
+                                } else {
+                                    ""
+                                };
+                                println!("{}{}", path, suffix);
                             } else {
-                                println!("{}", name);
+                                println!("{}", path);
                             }
                         }
                     }
-                    Err(err) => {
-                        eprintln!("ls: cannot access '{}': {}", path, err);
-                    }
-                }
-
-                if paths.len() > 1 {
-                    println!();
+                    Err(err) => eprintln!("ls: cannot access '{}': {}", path, err),
                 }
             }
         }
         Err(e) => eprintln!("{e}"),
     }
 }
+fn print_long(metadata: &fs::Metadata, name: &str) {
+    let file_type = {
+        let ft = metadata.file_type();
+        if ft.is_dir() {
+            'd'
+        } else if ft.is_symlink() {
+            'l'
+        } else if ft.is_char_device() {
+            'c'
+        } else if ft.is_block_device() {
+            'b'
+        } else if ft.is_socket() {
+            's'
+        } else if ft.is_fifo() {
+            'p'
+        } else {
+            '-'
+        }
+    };
 
-fn print_long(metadata: &fs::Metadata) {
     let permissions = metadata.permissions().mode();
-    let file_type = if metadata.is_dir() { 'd' } else { '-' };
     let perms = format!(
         "{}{}{}{}{}{}{}{}{}",
         if permissions & 0o400 != 0 { 'r' } else { '-' },
@@ -110,19 +170,44 @@ fn print_long(metadata: &fs::Metadata) {
         if permissions & 0o001 != 0 { 'x' } else { '-' },
     );
 
-    let size = metadata.len();
+    let uid = metadata.uid();
+    let gid = metadata.gid();
+
+    let user = get_user_by_uid(uid)
+        .and_then(|u| u.name().to_str().map(|s| s.to_string()))
+        .unwrap_or(uid.to_string());
+
+    let group = get_group_by_gid(gid)
+        .and_then(|g| g.name().to_str().map(|s| s.to_string()))
+        .unwrap_or(gid.to_string());
+
     let modified = metadata.modified().unwrap_or(SystemTime::UNIX_EPOCH);
-    // fix the hard code 
     let seconds = modified
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
         .as_secs();
-    
-    print!("{}{} {:>1} {:>1} ", file_type, perms, 1, size);
-
-    use chrono::{ Local,  TimeZone};
     let datetime = Local.timestamp_opt(seconds as i64, 0).unwrap();
-    print!("{} ", datetime.format("%b %e %H:%M"));
+
+    let size_or_dev = if metadata.file_type().is_block_device() || metadata.file_type().is_char_device() {
+        let rdev = metadata.rdev();
+        let major = libc::major(rdev) ;
+        let minor =  libc::minor(rdev) ;
+        format!("{}, {}", major, minor)
+    } else {
+        metadata.len().to_string()
+    };
+
+    println!(
+        "{}{} {:>1} {} {} {:>8} {} {}",
+        file_type,
+        perms,
+        metadata.nlink(),
+        user,
+        group,
+        size_or_dev,
+        datetime.format("%b %e %H:%M"),
+        name
+    );
 }
 
 fn print_classified(entry: &fs::DirEntry, name: &str) {
@@ -147,4 +232,36 @@ fn print_classified(entry: &fs::DirEntry, name: &str) {
     };
 
     println!("{}{}", name, suffix);
+}
+
+fn total(paths: Vec<String>, all: bool) {
+    let mut total_blocks = 0;
+
+    for path in paths.iter() {
+        if let Ok(entries_iter) = fs::read_dir(path) {
+            let entries: Vec<_> = entries_iter.filter_map(|e| e.ok()).collect();
+
+            if all {
+                if let Ok(meta_current) = fs::metadata(path) {
+                    total_blocks += meta_current.blocks();
+                }
+                let parent_path = format!("{}/..", path);
+                if let Ok(meta_parent) = fs::metadata(&parent_path) {
+                    total_blocks += meta_parent.blocks();
+                }
+            }
+
+            for entry in entries {
+                let name = entry.file_name().to_string_lossy().into_owned();
+                if name.starts_with('.') && !all {
+                    continue;
+                }
+                if let Ok(meta) = entry.metadata() {
+                    total_blocks += meta.blocks();
+                }
+            }
+        }
+    }
+
+    println!("total {}", total_blocks / 2); 
 }
