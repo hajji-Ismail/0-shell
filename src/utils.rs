@@ -1,5 +1,6 @@
 use std::{ io::{ self, Write } };
-
+use std::env;
+use std::path::Path;
 use crate::commands::{ self, * };
 #[derive(Debug)]
 pub struct Parsing {
@@ -100,7 +101,19 @@ fn tokenize(input: &str) -> Vec<String> {
                 current.clear();
             }
             _ => {
-                current.push(c);
+                if !in_quotes && current.is_empty() && c == '~' {
+                    let home = match env::var("HOME") {
+                        Ok(home) => Path::new(&home).to_path_buf(),
+                        Err(_) => Path::new("/").to_path_buf(),
+                    };
+                    if let Some(path_str) = home.to_str() {
+                        current.push_str(path_str);
+                    }
+                } else {
+
+                    current.push(c);
+                }
+
             }
         }
     }
@@ -126,10 +139,10 @@ fn tokenize(input: &str) -> Vec<String> {
 
             if let Some(pos) = user_input.find(quote_char) {
                 let (first_part, second_part) = user_input.split_at(pos);
-
+                // println!("{}1 {}2 ", first_part, second_part);
                 tokens.last_mut().expect("No token to modify").push_str(first_part);
 
-                let last = if let Some(last_part) = second_part.strip_suffix(quote_char) {
+                let last = if let Some(last_part) = second_part.strip_prefix(quote_char) {
                     last_part.to_string()
                 } else {
                     second_part.to_string()
@@ -139,6 +152,14 @@ fn tokenize(input: &str) -> Vec<String> {
                 break;
             } else {
                 tokens.last_mut().expect("No token to modify").push_str(&user_input);
+            }
+        }
+        if let Some(token) = tokens.last_mut() {
+            if token.ends_with('\n') {
+                token.pop();
+                if token.ends_with('\r') {
+                    token.pop();
+                }
             }
         }
     }
