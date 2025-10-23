@@ -57,7 +57,10 @@ pub fn input_loop() {
     }
 }
 fn parser(input: &str) -> Result<Parsing, String> {
-    let tokens = tokenize(input);
+    let (tokens, err) = tokenize(input);
+    if err {
+        return Err("zsh: no such user or named directory:".to_string());
+    }
     let command = if !tokens.is_empty() {
         tokens[0].to_string()
     } else {
@@ -76,12 +79,13 @@ fn parser(input: &str) -> Result<Parsing, String> {
 
     Ok(Parsing { command, arg: args, flag: flags })
 }
-fn tokenize(input: &str) -> Vec<String> {
+fn tokenize(input: &str) -> (Vec<String> , bool){
     let mut tokens = Vec::new();
     let mut current = String::new();
     let mut in_quotes = false;
     let mut quote_char = '\0';
 
+    let  mut telda  = false ;
     for c in input.chars() {
         match c {
             '"' | '\'' => {
@@ -97,11 +101,13 @@ fn tokenize(input: &str) -> Vec<String> {
                 }
             }
             ' ' if !in_quotes && !current.is_empty() => {
+                telda =  false ;
                 tokens.push(current.clone());
-                current.clear();
+                current.clear()
             }
             _ => {
                 if !in_quotes && current.is_empty() && c == '~' {
+                    telda =  true ;
                     let home = match env::var("HOME") {
                         Ok(home) => Path::new(&home).to_path_buf(),
                         Err(_) => Path::new("/").to_path_buf(),
@@ -109,7 +115,17 @@ fn tokenize(input: &str) -> Vec<String> {
                     if let Some(path_str) = home.to_str() {
                         current.push_str(path_str);
                     }
-                } else {
+                } else  {
+                    if telda && in_quotes && c != '/' {
+                        current = "~".to_string() ;
+                        telda = false
+                    }else if telda &&c == '/' {
+                        println!("ho");
+                        telda =false
+
+                    } else if telda && !in_quotes  && c != '/' {
+                     return (tokens, true)
+                    }
 
                     current.push(c);
                 }
@@ -164,5 +180,5 @@ fn tokenize(input: &str) -> Vec<String> {
         }
     }
 
-    tokens
+   ( tokens, false)
 }
