@@ -8,6 +8,7 @@ pub struct Parsing {
     pub arg: Vec<String>,
     pub flag: Vec<String>,
 }
+
 pub fn input_loop() {
     'main: loop {
         print!("$ ");
@@ -56,15 +57,17 @@ pub fn input_loop() {
         }
     }
 }
+
+
 fn parser(input: &str) -> Result<Parsing, String> {
     let (tokens, err) = tokenize(input);
     if err {
-        return Err("zsh: no such user or named directory:".to_string());
+        return Err("0-shell: no such user or named directory:".to_string());
     }
     let command = if !tokens.is_empty() {
         tokens[0].to_string()
     } else {
-        "".to_string() // Or handle empty input differently
+        "".to_string()
     };
 
     let mut args: Vec<String> = vec![];
