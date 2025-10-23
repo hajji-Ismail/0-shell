@@ -93,13 +93,11 @@ fn tokenize(input: &str) -> (Vec<String>, bool) {
 
     while let Some(c) = chars.next() {
         if escape_next {
-            // Handle escaped newline (line continuation)
             if c == '\n' {
-                // skip both '\' and '\n'
+                // skip  '\' and '\n'
                 escape_next = false;
                 continue;
             }
-            // Otherwise, keep literal character (escaped)
             current.push(c);
             escape_next = false;
             continue;
@@ -107,39 +105,35 @@ fn tokenize(input: &str) -> (Vec<String>, bool) {
 
         match c {
             '\\' => {
-                // Backslash logic
                 if in_quotes {
-                    // Inside double quotes: only escapes $, `, ", \, or newline
+                    // Inside double quotes: only escapes $, `, ", \, \n
                     if quote_char == '"' {
                         match chars.peek() {
                             Some('$') | Some('`') | Some('"') | Some('\\') => {
                                 escape_next = true;
                             }
                             Some('\n') => {
-                                chars.next(); // skip newline
+                                chars.next();
                             }
-                            _ => current.push('\\'), // literal backslash
+                            _ => current.push('\\'),
                         }
                     } else {
-                        // Inside single quotes: literal backslash
+                        // Inside single quotes 
                         current.push('\\');
                     }
                 } else {
-                    // Outside quotes: escape next char (including space)
+                    // Outside quotes: escape next 
                     escape_next = true;
                 }
             }
 
             '"' | '\'' => {
                 if in_quotes && c == quote_char {
-                    // Closing the same quote
                     in_quotes = false;
                 } else if !in_quotes {
-                    // Opening a quote
                     in_quotes = true;
                     quote_char = c;
                 } else {
-                    // Inside a quote, but different quote type (e.g., "it's fine")
                     current.push(c);
                 }
             }
