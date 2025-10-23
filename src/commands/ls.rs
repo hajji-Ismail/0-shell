@@ -184,8 +184,8 @@ fn print_long(metadata: &fs::Metadata, name: &str) {
 
     let size_or_dev = if metadata.file_type().is_block_device() || metadata.file_type().is_char_device() {
         let rdev = metadata.rdev();
-        let major = unsafe { libc::major(rdev) };
-        let minor = unsafe { libc::minor(rdev) };
+        let major = libc::major(rdev) ;
+        let minor =  libc::minor(rdev) ;
         format!("{}, {}", major, minor)
     } else {
         metadata.len().to_string()
