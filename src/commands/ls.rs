@@ -1,10 +1,9 @@
 use crate::utils::Parsing;
 use chrono::{Local, TimeZone};
+use nix::libc;
 use std::fs;
-use std::os::unix::fs::FileTypeExt;
-use std::os::unix::fs::{MetadataExt, PermissionsExt};
+use std::os::unix::fs::{FileTypeExt, MetadataExt, PermissionsExt};
 use std::time::{SystemTime, UNIX_EPOCH};
- use nix::libc;
 use users::{get_group_by_gid, get_user_by_uid};
 
 fn flag(flags: Vec<String>) -> Result<(bool, bool, bool), String> {
@@ -34,7 +33,6 @@ fn flag(flags: Vec<String>) -> Result<(bool, bool, bool), String> {
     Ok((all, long, classify))
 }
 
-
 pub fn ls(tokens: Parsing) {
     let flag_tuple = if !tokens.flag.is_empty() {
         flag(tokens.flag)
@@ -50,7 +48,7 @@ pub fn ls(tokens: Parsing) {
                 tokens.arg.clone()
             };
 
-            for path in paths.iter() {
+            for (i, path) in paths.iter().enumerate() {
                 match fs::metadata(path) {
                     Ok(metadata) => {
                         if metadata.is_dir() {
@@ -60,27 +58,34 @@ pub fn ls(tokens: Parsing) {
 
                             if long {
                                 total(vec![path.clone()], all);
+                            }
 
-                                if all {
+                            // Print . and .. if -a
+                            if all {
+                                if long {
                                     if let Ok(meta_current) = fs::metadata(path) {
-                                        print_long(&meta_current, ".");
+                                        print_long(&meta_current, ".", classify);
                                     }
                                     let parent_path = format!("{}/..", path);
                                     if let Ok(meta_parent) = fs::metadata(&parent_path) {
-                                        print_long(&meta_parent, "..");
+                                        print_long(&meta_parent, "..", classify);
                                     }
-                                }
-                            } else {
-                                if all {
-                                    println!(".");
-                                    println!("..");
+                                } else {
+                                    if classify {
+                                        println!("./");
+                                        println!("../");
+                                    } else {
+                                        println!(".");
+                                        println!("..");
+                                    }
                                 }
                             }
 
                             match fs::read_dir(path) {
                                 Ok(entries_iter) => {
-                                    let mut entries: Vec<_> = entries_iter.filter_map(|e| e.ok()).collect();
-                                    entries.sort_by_key(|e| e.file_name());
+                                    let mut entries: Vec<_> =
+                                        entries_iter.filter_map(|e| e.ok()).collect();
+                                    entries.sort_by_key(|e| e.file_name().to_ascii_lowercase());
 
                                     for entry in entries {
                                         let name = entry.file_name().to_string_lossy().into_owned();
@@ -90,7 +95,7 @@ pub fn ls(tokens: Parsing) {
 
                                         if let Ok(meta) = entry.metadata() {
                                             if long {
-                                                print_long(&meta, &name);
+                                                print_long(&meta, &name, classify);
                                             } else if classify {
                                                 print_classified(&entry, &name);
                                             } else {
@@ -102,15 +107,14 @@ pub fn ls(tokens: Parsing) {
                                 Err(err) => eprintln!("ls: cannot access '{}': {}", path, err),
                             }
 
-                            if paths.len() > 1 {
+                            if paths.len() > 1 && i < paths.len() - 1 {
                                 println!();
                             }
                         } else {
-                            
+                            // Path is a file
                             if long {
-                                print_long(&metadata, path);
+                                print_long(&metadata, path, classify);
                             } else if classify {
-                                
                                 let ft = metadata.file_type();
                                 let suffix = if ft.is_dir() {
                                     "/"
@@ -136,7 +140,8 @@ pub fn ls(tokens: Parsing) {
         Err(e) => eprintln!("{e}"),
     }
 }
-fn print_long(metadata: &fs::Metadata, name: &str) {
+
+fn print_long(metadata: &fs::Metadata, name: &str, classify: bool) {
     let file_type = {
         let ft = metadata.file_type();
         if ft.is_dir() {
@@ -190,15 +195,32 @@ fn print_long(metadata: &fs::Metadata, name: &str) {
 
     let size_or_dev = if metadata.file_type().is_block_device() || metadata.file_type().is_char_device() {
         let rdev = metadata.rdev();
-        let major = libc::major(rdev) ;
-        let minor =  libc::minor(rdev) ;
+        let major = libc::major(rdev);
+        let minor = libc::minor(rdev);
         format!("{}, {}", major, minor)
     } else {
         metadata.len().to_string()
     };
 
-    println!(
-        "{}{} {:>1} {} {} {:>8} {} {}",
+    // Determine classify suffix
+    let suffix = if classify {
+        if metadata.file_type().is_dir() {
+            "/"
+        } else if metadata.file_type().is_symlink() {
+            "@"
+        } else if metadata.file_type().is_socket() {
+            "="
+        } else if metadata.file_type().is_fifo() {
+            "|"
+        } else {
+            ""
+        }
+    } else {
+        ""
+    };
+
+    print!(
+        "{}{} {:>2} {:<8} {:<8} {:>8} {} {}{}",
         file_type,
         perms,
         metadata.nlink(),
@@ -206,8 +228,18 @@ fn print_long(metadata: &fs::Metadata, name: &str) {
         group,
         size_or_dev,
         datetime.format("%b %e %H:%M"),
-        name
+        name,
+        suffix
     );
+
+    // Add symlink target if it’s a link
+    if metadata.file_type().is_symlink() {
+        if let Ok(target) = fs::read_link(name) {
+            print!(" -> {}", target.display());
+        }
+    }
+
+    println!();
 }
 
 fn print_classified(entry: &fs::DirEntry, name: &str) {
@@ -263,5 +295,5 @@ fn total(paths: Vec<String>, all: bool) {
         }
     }
 
-    println!("total {}", total_blocks / 2); 
+    println!("total {}", total_blocks / 2);
 }

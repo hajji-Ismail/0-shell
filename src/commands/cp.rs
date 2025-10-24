@@ -21,6 +21,10 @@ pub fn cp(input: Parsing) {
         let destination = &input.arg[input.arg.len() - 1];
         let is_dir = Path::new(destination).is_dir();
         for src in &input.arg[..input.arg.len() - 1] {
+            if src == destination {
+                println!("cp: '{}' and '{}' are the same file", src,src);
+                continue
+            }
             let src_path = Path::new(src);
             let dest_path = if is_dir{
                 Path::new(destination).join(src_path.file_name().unwrap())
