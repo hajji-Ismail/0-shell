@@ -1,11 +1,57 @@
 use std::{ env, io::{ self, Write } };
 
-pub fn tokenize(input: &str) -> Result<Vec<String>, String> {
+pub fn tokenize(input: &str) -> Result<Vec<(String, bool)>, String> {
+    let mut full_input = String::from(input);
+
+    loop {
+        let trimmed_input = full_input.trim_end();
+        let trailing_backslash = trimmed_input.ends_with('\\');
+
+        match internal_tokenize(&full_input) {
+            Ok(tokens) => {
+                if trailing_backslash {
+                    // Remove the trailing backslash
+                    full_input.pop();
+                    print!("> ");
+                    io::stdout().flush().unwrap();
+
+                    let mut user_input = String::new();
+                    if io::stdin().read_line(&mut user_input).is_err() {
+                        return Err("Failed to read input".to_string());
+                    }
+
+                    full_input.push_str(&user_input.trim_end());
+                } else {
+                    return Ok(tokens);
+                }
+            }
+            Err(quote_char) => {
+                if quote_char == '\0' {
+                    return Err("Bad substitution".to_string());
+                }
+
+                full_input.push('\n');
+                print!("{} ", if quote_char == '"' { "dquote>" } else { "quote>" });
+                io::stdout().flush().unwrap();
+
+                let mut user_input = String::new();
+                if io::stdin().read_line(&mut user_input).is_err() {
+                    return Err("Failed to read input".to_string());
+                }
+
+                full_input.push_str(&user_input);
+            }
+        }
+    }
+}
+
+fn internal_tokenize(input: &str) -> Result<Vec<(String, bool)>, char> {
     let mut tokens = Vec::new();
     let mut current = String::new();
     let mut in_quotes = false;
     let mut quote_char = '\0';
     let mut escape_next = false;
+    let mut in_single_quotes = false;
 
     let mut chars = input.chars().peekable();
 
@@ -19,113 +65,107 @@ pub fn tokenize(input: &str) -> Result<Vec<String>, String> {
         match c {
             '\\' => {
                 if in_quotes && quote_char == '"' {
-                    if let Some(next_char) = chars.next() {
-                        // Only special characters are escaped
+                    if let Some(&next_char) = chars.peek() {
                         match next_char {
-                            '"' | '\\' | '$' | '`' => current.push(next_char),
+                            '"' | '\\' | '$' | '`' => {
+                                current.push(chars.next().unwrap());
+                            }
                             _ => {
                                 current.push('\\');
-                                current.push(next_char);
+                                current.push(chars.next().unwrap());
                             }
                         }
                     } else {
                         current.push('\\');
                     }
                 } else if in_quotes && quote_char == '\'' {
-                    current.push('\\'); // literal
+                    current.push('\\');
                 } else {
-                    // outside quotes: escape next char
-                    if let Some(next_char) = chars.next() {
-                        current.push(next_char);
-                    }
+                    escape_next = true;
                 }
             }
 
             '"' | '\'' => {
                 if in_quotes && c == quote_char {
+                    if quote_char == '\'' {
+                        in_single_quotes = false;
+                    }
                     in_quotes = false;
                 } else if !in_quotes {
                     in_quotes = true;
                     quote_char = c;
+                    if c == '\'' {
+                        in_single_quotes = true;
+                    }
                 } else {
                     current.push(c);
                 }
             }
 
-            // Handle whitespace as token separators when not quoted
             ' ' | '\t' if !in_quotes => {
                 if !current.is_empty() {
-                    tokens.push(current.clone());
+                    tokens.push((current.clone(), in_single_quotes));
                     current.clear();
+                    in_single_quotes = false;
                 }
             }
 
-            // Handle tilde (~ → $HOME)
             '~' if !in_quotes && current.is_empty() => {
-                let next = chars.peek();
-                match next {
-                    Some('/') | None => {
-                        if let Ok(home) = env::var("HOME") {
-                            current.push_str(&home);
-                        } else {
-                            current.push('/');
-                        }
+                match chars.peek() {
+                    Some(&c) if c == '/' || c.is_whitespace() => {
+                        current.push_str(&env::var("HOME").unwrap_or("/".to_string()));
                     }
-                    Some(_) => {
-                        current.push('~');
+                    None => {
+                        current.push_str(&env::var("HOME").unwrap_or("/".to_string()));
                     }
+                    Some(_) => current.push('~'),
                 }
             }
 
-            _ => {
-                current.push(c);
+            '$' if !in_single_quotes => {
+                let mut var_name = String::new();
+                let mut is_braced = false;
+
+                if let Some(&next_char) = chars.peek() {
+                    if next_char == '{' {
+                        is_braced = true;
+                        chars.next();
+                    }
+                }
+
+                while let Some(&next_char) = chars.peek() {
+                    if is_braced && next_char == '}' {
+                        chars.next();
+                        if var_name.is_empty() {
+                            return Err('\0'); // Trigger bad substitution error
+                        }
+                        break;
+                    } else if !is_braced && !next_char.is_alphanumeric() && next_char != '_' {
+                        break;
+                    }
+                    var_name.push(chars.next().unwrap());
+                }
+
+                if !var_name.is_empty() {
+                    if let Ok(value) = env::var(&var_name) {
+                        current.push_str(&value);
+                    }
+                } else {
+                    current.push('$');
+                }
             }
+
+            _ => current.push(c),
         }
     }
 
     if !current.is_empty() {
-        tokens.push(current);
+        tokens.push((current.clone(), in_single_quotes));
     }
 
-    // Handle unterminated quotes (multi-line continuation)
     if in_quotes {
-        tokens.last_mut().expect("No token to modify").push('\n');
-        loop {
-            if quote_char == '"' {
-                print!("dquote>");
-            } else {
-                print!("quote>");
-            }
-            io::stdout().flush().unwrap();
-
-            let mut user_input = String::new();
-            if io::stdin().read_line(&mut user_input).is_err() {
-                break;
-            }
-
-            if let Some(pos) = user_input.find(quote_char) {
-                let (first_part, remainder) = user_input.split_at(pos);
-                tokens.last_mut().unwrap().push_str(first_part);
-                if let Some(after) = remainder.strip_prefix(quote_char) {
-                    tokens.push(after.to_string());
-                }
-                break;
-            } else {
-                tokens.last_mut().unwrap().push_str(&user_input);
-            }
-        }
-
-        if let Some(token) = tokens.last_mut() {
-            if token.ends_with('\n') {
-                token.pop();
-                if token.ends_with('\r') {
-                    token.pop();
-                }
-            }
-        }
+        Err(quote_char)
+    } else {
+        Ok(tokens)
     }
-
-    println!("{:?} bbbb",tokens);
-
-    Ok(tokens)
 }

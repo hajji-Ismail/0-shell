@@ -1,0 +1,12 @@
+echo ~
+echo ~/path
+echo abc~
+echo "~"
+echo \~
+echo '\~'
+echo ~ $MY_VAR ~/path '~'
+
+
+
+
+
