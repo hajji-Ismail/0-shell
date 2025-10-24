@@ -1,20 +1,20 @@
 use std::env;
 use std::path::Path;
 
-use crate::utils::Parsing;
+use crate::parser::Parsing;
 
 pub fn cd(input: Parsing) {
-    if !input.flag.is_empty(){
-        println!("bash: cd: {}: invalid option", input.flag[0]);
+    if !input.flags.is_empty(){
+        println!("bash: cd: {}: invalid option", input.flags[0]);
         return
     }
-    if input.arg.len() > 1 {
+    if input.args.len() > 1 {
         println!("bash: cd: too many arguments");
         return
     }
-    // Determine the target path
-    let target = if let Some(first_arg) = input.arg.get(0) {
-        let p = first_arg.trim();
+    // Determine the targset path
+    let targset = if let Some(first_args) = input.args.get(0) {
+        let p = first_args.trim();
 
 
         // Handle "cd -" (go to previous directory)
@@ -41,7 +41,7 @@ pub fn cd(input: Parsing) {
             Path::new(p).to_path_buf()
         }
     } else {
-        // No arguments → go to $HOME or fallback to /
+        // No argsuments → go to $HOME or fallback to /
         match env::var("HOME") {
             Ok(home) => Path::new(&home).to_path_buf(),
             Err(_) => Path::new("/").to_path_buf(),
@@ -56,7 +56,7 @@ pub fn cd(input: Parsing) {
        
 
     // Try to change directory
-    if let Err(e) = env::set_current_dir(&target) {
+    if let Err(e) = env::set_current_dir(&targset) {
         eprintln!("cd: {}", e);
     }
 }

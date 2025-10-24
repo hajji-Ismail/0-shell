@@ -24,7 +24,7 @@ pub fn input_loop() {
                     match parsing_res {
                         Ok(res) => match res.command.as_str() {
                             "pwd" => commands::pwd::pwd(res),
-                            "echo" => commands::echo::echo(res.arg),
+                            "echo" => commands::echo::echo(res.args),
                             "cd" => commands::cd::cd(res),
                             "rm" => commands::rm::rm(res),
                             "ls" => commands::ls::ls(res),
