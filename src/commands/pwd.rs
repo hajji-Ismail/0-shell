@@ -1,10 +1,10 @@
 use std::env;
 
-use crate::utils::Parsing;
+use crate::parser::Parsing;
 
 pub fn pwd(data: Parsing){
-  if !data.flag.is_empty() {
-        eprintln!(" pwd: {:?}: invalid option", data.flag);
+  if !data.flags.is_empty() {
+        eprintln!(" pwd: {:?}: invalid option", data.flags);
         return;
     }
     match env::current_dir() {

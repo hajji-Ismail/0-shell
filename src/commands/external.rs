@@ -2,7 +2,7 @@ use nix::unistd::{ fork, ForkResult, execvp };
 use nix::sys::wait::wait;
 use std::ffi::CString;
 use std::env;
-use crate::utils::Parsing;
+use crate::parser::Parsing;
 
 pub fn run_external_command(parsed: &Parsing) {
     let path = env::var("PATH").unwrap_or_default();
@@ -13,13 +13,13 @@ pub fn run_external_command(parsed: &Parsing) {
         }
     }
 
-    let mut args: Vec<CString> = Vec::with_capacity(1 + parsed.flag.len() + parsed.arg.len());
+    let mut args: Vec<CString> = Vec::with_capacity(1 + parsed.flags.len() + parsed.args.len());
     args.push(CString::new(parsed.command.clone()).unwrap());
 
-    for flag in &parsed.flag {
+    for flag in &parsed.flags {
         args.push(CString::new(flag.as_str()).unwrap());
     }
-    for arg in &parsed.arg {
+    for arg in &parsed.args {
         args.push(CString::new(arg.as_str()).unwrap());
     }
 

@@ -25,8 +25,8 @@ pub fn input_loop() {
                         Ok(res) =>
                             match res.command.as_str() {
                                 "pwd" => commands::pwd::pwd(res),
-                                "echo" => commands::echo::echo(res.arg),
-                                "cd" => commands::cd::cd(Some(&res.arg.join(""))),
+                                "echo" => commands::echo::echo(res.args),
+                                "cd" => commands::cd::cd(Some(&res.args.join(""))),
                                 "rm" => commands::rm::rm(res),
                                 "ls" => commands::ls::ls(res),
                                 "mkdir" => commands::mkdir::mkdir(res),

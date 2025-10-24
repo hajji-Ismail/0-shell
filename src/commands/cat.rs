@@ -1,14 +1,14 @@
-use crate::Parsing;
+use crate::parser::Parsing;
 use std::io::{self, Write};
 use std::fs;
 
 pub fn cat(input: Parsing) {
-    if !input.flag.is_empty() {
-        println!("cat: unrecognized option '{}'", input.flag[0]);
+    if !input.flags.is_empty() {
+        println!("cat: unrecognized option '{}'", input.flags[0]);
 
         return;
     }
-    if input.arg.is_empty() {
+    if input.args.is_empty() {
         'cat: loop {
             io::stdout().flush().unwrap();
             
@@ -31,7 +31,7 @@ pub fn cat(input: Parsing) {
             }
         }
     } else {
-        for path in input.arg {
+        for path in input.args {
             match fs::read_to_string(path.clone()) {
                 Ok(content) => println!("{}", content),
                 Err(e) => eprintln!("cat: {}: {}", path, e),

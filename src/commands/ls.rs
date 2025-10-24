@@ -1,4 +1,4 @@
-use crate::utils::Parsing;
+use crate::parser::Parsing;
 use chrono::{Local, TimeZone};
 use std::fs;
 use std::os::unix::fs::FileTypeExt;
@@ -36,18 +36,18 @@ fn flag(flags: Vec<String>) -> Result<(bool, bool, bool), String> {
 
 
 pub fn ls(tokens: Parsing) {
-    let flag_tuple = if !tokens.flag.is_empty() {
-        flag(tokens.flag)
+    let flag_tuple = if !tokens.flags.is_empty() {
+        flag(tokens.flags)
     } else {
         Ok((false, false, false))
     };
 
     match flag_tuple {
         Ok((all, long, classify)) => {
-            let paths = if tokens.arg.is_empty() {
+            let paths = if tokens.args.is_empty() {
                 vec![".".to_string()]
             } else {
-                tokens.arg.clone()
+                tokens.args.clone()
             };
 
             for path in paths.iter() {
