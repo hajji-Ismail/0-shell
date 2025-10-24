@@ -1,0 +1,359 @@
+🚨 Dangerous MV Test Cases
+💥 Case 1: No arguments
+bash
+mv
+Expected: Usage error message (missing arguments)
+
+💥 Case 2: Only one argument
+bash
+mv source.txt
+Expected: Missing destination error
+
+💥 Case 3: Empty source argument
+bash
+mv "" destination.txt
+Expected: Should handle empty string gracefully with error
+
+💥 Case 4: Empty destination argument
+bash
+mv source.txt ""
+Expected: Should handle empty destination gracefully
+
+💥 Case 5: Both arguments empty
+bash
+mv "" ""
+Expected: Should error on both empty arguments
+
+💥 Case 6: Source doesn't exist
+bash
+mv nonexistent_file.txt destination.txt
+Expected: Proper error message, no panic
+
+💥 Case 7: Multiple sources, one doesn't exist
+bash
+touch real_file.txt
+mv real_file.txt nonexistent_file.txt destination_dir/
+Expected: Should handle partial failures gracefully
+
+💥 Case 8: Destination directory doesn't exist
+bash
+echo "content" > source.txt
+mv source.txt /nonexistent/path/destination.txt
+Expected: Error message for invalid destination path
+
+💥 Case 9: Move to itself
+bash
+echo "content" > file.txt
+mv file.txt file.txt
+Expected: Should detect self-move and either error or be no-op
+
+💥 Case 10: Only spaces as source
+bash
+mv "    " destination.txt
+Expected: Should treat as invalid source
+
+💥 Case 11: Only spaces as destination
+bash
+mv source.txt "    "
+Expected: Should treat as invalid destination
+
+💥 Case 12: Permission denied (source)
+bash
+echo "secret" > secret_file.txt
+chmod 000 secret_file.txt
+mv secret_file.txt destination.txt
+Expected: Permission error message
+
+💥 Case 13: Permission denied (destination directory)
+bash
+mkdir restricted_dir
+chmod 000 restricted_dir
+echo "content" > source.txt
+mv source.txt restricted_dir/
+Expected: Permission error message
+
+💥 Case 14: Destination is read-only filesystem
+bash
+mv source.txt /proc/  # or other read-only location
+Expected: Permission error or read-only filesystem error
+
+💥 Case 15: Symlink as source
+bash
+echo "target content" > target.txt
+ln -s target.txt link.txt
+mv link.txt destination.txt
+Expected: Should move the symlink, not the target
+
+💥 Case 16: Broken symlink as source
+bash
+ln -s /nonexistent/file broken_link
+mv broken_link destination.txt
+Expected: Should move the broken symlink
+
+💥 Case 17: Directory as source
+bash
+mkdir mydir
+echo "file" > mydir/file.txt
+mv mydir newdir
+Expected: Should rename directory
+
+💥 Case 18: Circular symlinks
+bash
+ln -s circle1 circle2
+ln -s circle2 circle1
+mv circle1 destination.txt
+Expected: Should move the symlink
+
+💥 Case 19: Special characters in filenames
+bash
+touch "file with spaces.txt"
+mv "file with spaces.txt" "dest with spaces.txt"
+bash
+touch "file*with*stars.txt"
+mv "file*with*stars.txt" destination.txt
+bash
+touch "file?with?questions.txt"
+mv "file?with?questions.txt" destination.txt
+Expected: Should handle special characters properly
+
+💥 Case 20: Very long filenames
+bash
+# Create extremely long filename
+LONG_NAME=$(printf "a%.0s" {1..500})
+touch "$LONG_NAME.txt"
+mv "$LONG_NAME.txt" "new_$LONG_NAME.txt"
+Expected: No buffer overflow
+
+💥 Case 21: Too many arguments
+bash
+touch file1.txt file2.txt file3.txt file4.txt file5.txt
+mv file1.txt file2.txt file3.txt file4.txt file5.txt  # No destination directory
+Expected: Should error when multiple sources but last is not directory
+
+💥 Case 22: Move to device file
+bash
+echo "content" > source.txt
+mv source.txt /dev/null
+Expected: Should overwrite device file (dangerous but possible)
+
+💥 Case 23: Unicode and emoji filenames
+bash
+touch "中文文件.txt"
+mv "中文文件.txt" "移动.txt"
+bash
+touch "file with 🚀 emoji.txt"
+mv "file with 🚀 emoji.txt" "moved 🚀 file.txt"
+Expected: Should handle Unicode properly
+
+💥 Case 24: Hidden files
+bash
+touch .hidden_file
+mv .hidden_file .new_hidden
+Expected: Should move hidden files
+
+💥 Case 25: Across filesystems
+bash
+# If different filesystems exist
+mv /tmp/source.txt /home/destination.txt
+Expected: Should copy and delete if cross-filesystem
+
+🛡️ Additional Edge Cases:
+Case 26: Destination already exists (file)
+bash
+echo "old" > existing.txt
+echo "new" > source.txt
+mv source.txt existing.txt
+Expected: Should overwrite existing file
+
+Case 27: Destination already exists (directory)
+bash
+mkdir existing_dir
+echo "content" > source.txt
+mv source.txt existing_dir/
+Expected: Should move file into directory
+
+Case 28: Multiple files to directory
+bash
+mkdir dest_dir
+touch file1.txt file2.txt file3.txt
+mv file1.txt file2.txt file3.txt dest_dir/
+Expected: Should move all files to directory
+
+Case 29: Move directory to existing directory
+bash
+mkdir dir1 dir2
+touch dir1/file.txt
+mv dir1 dir2
+Expected: Should move dir1 inside dir2 (dir2/dir1/)
+
+💥 Case 30: Move directory to non-existent path
+bash
+mkdir mydir
+mv mydir /nonexistent/path/mydir
+Expected: Should error - parent directory doesn't exist
+
+💥 Case 31: Source and destination same filesystem
+bash
+mv /tmp/source1.txt /tmp/source2.txt
+Expected: Should rename (not copy+delete)
+
+💥 Case 32: Race condition - source deleted during move
+bash
+touch race_file.txt
+mv race_file.txt destination.txt & rm race_file.txt
+Expected: Should handle gracefully
+
+💥 Case 33: Race condition - destination created during move
+bash
+touch source.txt
+mv source.txt destination.txt & touch destination.txt
+Expected: Should handle overwrite race
+
+💥 Case 34: Parent directory becomes inaccessible
+bash
+mkdir parent
+touch parent/source.txt
+mv parent/source.txt destination.txt & chmod 000 parent
+Expected: Should handle permission changes
+
+💥 Case 35: Disk full during cross-filesystem move
+bash
+# Hard to test but should be handled
+mv large_file.txt /different/filesystem/
+Expected: Should handle out-of-space gracefully
+
+💥 Case 36: Null bytes in filenames
+bash
+# Attempt to create file with null byte
+touch "file\0withnull.txt"
+mv "file\0withnull.txt" destination.txt
+Expected: Should handle or reject null bytes
+
+💥 Case 37: Symbolic link chains
+bash
+mkdir real_dir
+echo "content" > real_dir/file.txt
+ln -s real_dir link1
+ln -s link1 link2
+mv link2/file.txt destination.txt
+Expected: Should resolve symlink chains
+
+💥 Case 38: Move current directory
+bash
+mkdir mydir
+cd mydir
+mv . ../newdir
+Expected: Should handle moving current directory
+
+💥 Case 39: Move parent directory
+bash
+mkdir parent
+cd parent
+mkdir child
+cd child
+mv .. ../new_parent
+Expected: Should handle moving parent directory
+
+💥 Case 40: Hard linked files
+bash
+echo "content" > original.txt
+ln original.txt hardlink.txt
+mv hardlink.txt new_hardlink.txt
+Expected: Should move hardlink, both should still work
+
+🎯 Key Panic Points to Test:
+Memory allocation failures - very long paths, many files
+
+Buffer overflows - filename and path length limits
+
+String termination issues - null bytes, malformed strings
+
+Permission handling - read/write/execute permissions
+
+Symlink resolution - cycles, broken links
+
+Filesystem boundaries - cross-filesystem moves
+
+Race conditions - files changing during operation
+
+Disk space issues - during copy phase of cross-fs move
+
+Invalid file operations - moving busy files
+
+Edge case arguments - empty, spaces, special chars
+
+🔧 Test Setup Helper:
+bash
+# Create test directory structure
+mkdir -p mv_test_dir
+cd mv_test_dir
+
+# Cleanup between tests
+cleanup() {
+    cd ..
+    rm -rf mv_test_dir
+    mkdir mv_test_dir
+    cd mv_test_dir
+}
+🚨 Specific Crash Scenarios:
+Case 41: Source is current directory
+bash
+mv . destination
+Expected: Should error or handle specially
+
+Case 42: Source is parent directory
+bash
+mv .. destination
+Expected: Should error
+
+Case 43: Wildcard expansion
+bash
+touch file1.txt file2.txt file3.txt
+mv *.txt destination_dir/
+Expected: Should move all matching files
+
+Case 44: Environment variables in paths
+bash
+export DEST_DIR="/tmp"
+mv source.txt $DEST_DIR/destination.txt
+Expected: Should handle variable expansion
+
+Case 45: Relative paths with ..
+bash
+mkdir -p dir1/dir2
+echo "content" > dir1/dir2/source.txt
+mv ../dir2/source.txt destination.txt
+Expected: Should handle relative paths correctly
+
+Case 46: Move to symlink of directory
+bash
+mkdir real_dir
+ln -s real_dir link_dir
+touch source.txt
+mv source.txt link_dir/
+Expected: Should move to target directory
+
+Case 47: Move symlink to directory
+bash
+mkdir target_dir
+ln -s target_dir link_dir
+mv link_dir new_link_dir
+Expected: Should rename the symlink
+
+Case 48: Source directory not empty
+bash
+mkdir dir_with_files
+touch dir_with_files/file1.txt dir_with_files/file2.txt
+mv dir_with_files new_location
+Expected: Should move entire directory with contents
+
+Case 49: Destination is substring of source
+bash
+touch long_filename.txt
+mv long_filename.txt long
+Expected: Should rename correctly
+
+Case 50: Source is substring of destination
+bash
+touch short
+mv short shorter_name
