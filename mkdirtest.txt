@@ -1,0 +1,310 @@
+🔧 Test Directory Setup:
+bash
+# Create comprehensive test directory
+mkdir ls_test
+cd ls_test
+
+# Create various file types
+touch normal.txt
+mkdir directory
+ln -s normal.txt symlink.txt
+chmod +x normal.txt  # make it executable
+touch .hidden.txt
+mkdir .hidden_dir
+
+# Cleanup function
+cleanup() {
+    cd ..
+    rm -rf ls_test
+}
+🚨 Specific Crash Scenarios:
+Case 36: Directory deleted during listing
+bash
+mkdir temp_dir
+touch temp_dir/file{1..10}.txt
+# Simulate concurrent deletion while listing
+ls -l temp_dir & rm -rf temp_dir
+Expected: Should handle gracefully
+
+Case 37: File becomes directory during stat
+bash
+touch changing_file
+# During ls -l, replace file with directory
+ls -l changing_file & rm changing_file && mkdir changing_file
+Expected: Should handle file type changes
+
+Case 38: Very long path names
+bash
+LONG_PATH=$(printf "dir%.0s" {1..50})
+mkdir -p "$LONG_PATH"
+ls "$LONG_PATH"
+Expected: No path length issues
+
+Case 39: Mixed valid and invalid arguments
+bash
+mkdir valid_dir
+ls valid_dir /nonexistent valid_dir
+Expected: Should process valid args and error on invalid ones
+
+Case 40: Options as arguments
+bash
+touch -l -a -F
+ls -- -l -a -F
+Expected: Should list files named -l, -a, -F
+
+Make sure your ls implementation:
+
+Validates all directory paths before accessing
+
+Handles opendir(), readdir(), stat() failures gracefully
+
+Properly manages memory for file lists and strings
+
+Handles all three options and their combinations correctly
+
+Doesn't crash on any file system state
+
+These tests should help identify any panic conditions in your ls implementation with -l, -a, and -F options!
+
+now mkdir no argument
+Here are comprehensive test cases for the mkdir command with no options that could potentially panic or break your implementation:
+
+🚨 Dangerous MKDIR Test Cases
+💥 Case 1: No arguments
+bash
+mkdir
+Expected: Usage error message (missing operand)
+
+💥 Case 2: Empty argument
+bash
+mkdir ""
+Expected: Should handle empty string gracefully with error
+
+💥 Case 3: Only spaces
+bash
+mkdir "    "
+Expected: Should treat as invalid directory name
+
+💥 Case 4: Directory already exists
+bash
+mkdir existing_dir
+mkdir existing_dir
+Expected: Error "File exists" or similar
+
+💥 Case 5: Multiple existing directories
+bash
+mkdir dir1 dir2 dir3
+mkdir dir1 dir2 dir3
+Expected: Should error on all existing directories
+
+💥 Case 6: Mixed existing and new directories
+bash
+mkdir dir1
+mkdir dir1 dir2 dir3
+Expected: Should create new directories, error on existing ones
+
+💥 Case 7: Permission denied
+bash
+mkdir /root/restricted  # if not root
+Expected: Permission error message
+
+💥 Case 8: Non-existent parent directory
+bash
+mkdir /nonexistent/parent/new_dir
+Expected: Error "No such file or directory" for parent path
+
+💥 Case 9: Special characters in directory name
+bash
+mkdir "dir with spaces"
+bash
+mkdir "dir*with*stars"
+bash
+mkdir "dir?with?questions"
+Expected: Should create directories with special characters
+
+💥 Case 10: Very long directory name
+bash
+LONG_NAME=$(printf "a%.0s" {1..500})
+mkdir "$LONG_NAME"
+Expected: No buffer overflow, should create directory
+
+💥 Case 11: Unicode and emoji in names
+bash
+mkdir "中文目录"
+bash
+mkdir "dir with 🚀 emoji"
+Expected: Should handle Unicode properly
+
+💥 Case 12: Directory name with slashes
+bash
+mkdir "dir/with/slash"  # This should fail
+Expected: Should reject names with slashes
+
+💥 Case 13: Directory name with null bytes
+bash
+# Attempt to create dir with null byte
+mkdir "dir\0withnull"
+Expected: Should handle or reject null bytes
+
+💥 Case 14: Dot and dotdot as names
+bash
+mkdir "."
+mkdir ".."
+Expected: Should reject . and .. as directory names
+
+💥 Case 15: Name starting with dash
+bash
+mkdir "-help"
+bash
+mkdir "--version"
+Expected: Should create directories with dash names
+
+💥 Case 16: Multiple directories creation
+bash
+mkdir dir1 dir2 dir3 dir4 dir5
+Expected: Should create all directories
+
+💥 Case 17: Too many arguments
+bash
+mkdir dir1 dir2 dir3 dir4 dir5 dir6 dir7 dir8 dir9 dir10 dir11 dir12 dir13 dir14 dir15
+Expected: Should handle many directory names
+
+💥 Case 18: Symlink in path
+bash
+mkdir target_dir
+ln -s target_dir link_dir
+mkdir link_dir/new_dir
+Expected: Should create directory in target location
+
+💥 Case 19: Broken symlink in path
+bash
+ln -s /nonexistent/directory broken_link
+mkdir broken_link/new_dir
+Expected: Should error on broken symlink
+
+💥 Case 20: Circular symlinks in path
+bash
+ln -s circle1 circle2
+ln -s circle2 circle1
+mkdir circle1/new_dir
+Expected: Should detect circular reference
+
+💥 Case 21: File with same name exists
+bash
+touch file_exists
+mkdir file_exists
+Expected: Error "File exists" (not a directory)
+
+💥 Case 22: Device file with same name
+bash
+# If possible to create in test environment
+mkdir /dev/some_device  # might exist
+Expected: Should error appropriately
+
+💥 Case 23: Parent is a file, not directory
+bash
+touch parent_file
+mkdir parent_file/child_dir
+Expected: Error "Not a directory"
+
+💥 Case 24: Relative path creation
+bash
+mkdir ./relative_dir
+mkdir ../sibling_dir
+Expected: Should handle relative paths correctly
+
+💥 Case 25: Absolute path creation
+bash
+mkdir /tmp/test_absolute_dir
+Expected: Should create directory at absolute path
+
+🛡️ Additional Edge Cases:
+Case 26: Empty between non-empty
+bash
+mkdir "dir1" "" "dir2"
+Expected: Should error on empty name but continue with others
+
+Case 27: Only invalid names
+bash
+mkdir "" " " ""
+Expected: Should error on all invalid names
+
+Case 28: Name with trailing space
+bash
+mkdir "dir "
+Expected: Should create directory with trailing space
+
+Case 29: Name with leading space
+bash
+mkdir " dir"
+Expected: Should create directory with leading space
+
+Case 30: Name with multiple spaces
+bash
+mkdir "  dir  with  spaces  "
+Expected: Should preserve multiple spaces
+
+Case 31: Name with tabs
+bash
+mkdir "dir	with	tabs"  # actual tabs
+Expected: Should create directory with tabs in name
+
+Case 32: Name with newlines (if possible)
+bash
+mkdir "dir
+with
+newlines"
+Expected: Should handle or reject multiline names
+
+Case 33: Name with carriage returns
+bash
+mkdir "dir\rwith\rcarriage"
+Expected: Should handle carriage returns
+
+Case 34: Name with only dots
+bash
+mkdir "..."
+bash
+mkdir "...."
+Expected: Should create directories with multiple dots
+
+Case 35: Name identical to parent directory
+bash
+mkdir test
+cd test
+mkdir test  # create test/test
+Expected: Should create subdirectory with same name
+
+Case 36: Race condition - directory created during mkdir
+bash
+mkdir race_dir & mkdir race_dir
+Expected: One should succeed, one should fail
+
+Case 37: Deep directory structure
+bash
+mkdir -p level1/level2/level3/level4/level5
+Expected: Should create deep hierarchy
+
+Case 38: Name with shell metacharacters
+bash
+mkdir "dir|with|pipe"
+bash
+mkdir "dir&with&amp"
+bash
+mkdir "dir;with;semicolon"
+Expected: Should create directories with metacharacters
+
+Case 39: Name with quotes
+bash
+mkdir "dir'with'quotes"
+bash
+mkdir 'dir"with"quotes'
+bash
+mkdir "dir\"with\"escaped"
+Expected: Should handle quotes in names
+
+Case 40: Name with dollar signs
+bash
+mkdir "$HOME"  # if shell expands
+bash
+mkdir "\$HOME"  # literal
