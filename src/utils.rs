@@ -1,12 +1,7 @@
-use std::{ io::{self, Write} };
+use std::{ io::{ self, Write } };
+use crate::commands::{ self, * };
+use crate::parser::*;
 
-use crate::commands::{self, *};
-#[derive(Debug)]
-pub struct Parsing {
-    pub command: String,
-    pub arg: Vec<String>,
-    pub flag: Vec<String>,
-}
 pub fn input_loop() {
     'main: loop {
         print!("$ ");
@@ -17,22 +12,19 @@ pub fn input_loop() {
 
         match bytes_read {
             Ok(0) => {
-
                 break 'main;
             }
             Ok(_) => {
                 let input = user_input.trim();
-
                 if input == "exit" {
-                    break 'main;
+                    break 'main; 
                 }
-                if input !="" {
-
-                    let parsing_res = parser(input);
+                if input != "" {
+                    let parsing_res = parse(input);
                     match parsing_res {
                         Ok(res) => match res.command.as_str() {
                             "pwd" => commands::pwd::pwd(res),
-                            "echo" => commands::echo::echo(res.arg),
+                            "echo" => commands::echo::echo(res.args),
                             "cd" => commands::cd::cd(res),
                             "rm" => commands::rm::rm(res),
                             "ls" => commands::ls::ls(res),
@@ -50,78 +42,13 @@ pub fn input_loop() {
                             continue;
                         }
                     }
-                } 
-
-            }, 
-             Err(e) => {
+                }
+            }
+            Err(e) => {
                 eprintln!("Error reading input: {}", e);
                 break 'main;
             }
-
-           
         }
     }
 }
-fn parser(input : &str) ->Result<Parsing, String> {
-    let tokens = tokenize(input);
-    let command = if !tokens.is_empty() {
-        tokens[0].to_string()
-    } else {
-        "".to_string()  // Or handle empty input differently
-    };
 
-    let mut args : Vec<String> = vec![];
-    let mut flags : Vec<String> = vec![];
-        for token in &tokens[1..] {
-        if token.starts_with('-') {
-            flags.push(token.to_string());
-        } else {
-            args.push(token.to_string());
-        }
-    }
-
-        Ok(Parsing { command, arg: args, flag: flags })
-
-
-
-
-}
-fn tokenize(input: &str) -> Vec<String> {
-    let mut tokens = Vec::new();
-    let mut current = String::new();
-    let mut in_quotes = false;
-    let mut quote_char = '\0'; // stores which quote type we're inside
-
-    for c in input.chars() {
-        match c {
-            '"' | '\'' => {
-                if in_quotes && c == quote_char {
-                    // closing the same type of quote
-                    in_quotes = false;
-                } else if !in_quotes {
-                    // opening quote
-                    in_quotes = true;
-                    quote_char = c;
-                } else {
-                    // inside one type of quote, but different char (e.g., "it's fine")
-                    current.push(c);
-                }
-            }
-            ' ' if !in_quotes => {
-                if !current.is_empty() {
-                    tokens.push(current.clone());
-                    current.clear();
-                }
-            }
-            _ => {
-                current.push(c);
-            }
-        }
-    }
-
-    if !current.is_empty() {
-        tokens.push(current);
-    }
-
-    tokens
-}

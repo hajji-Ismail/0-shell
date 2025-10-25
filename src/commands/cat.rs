@@ -1,18 +1,16 @@
-use crate::Parsing;
+use crate::parser::Parsing;
 use std::fs::File;
 use std::io::{self, Read, Write};
 use std::fs;
 use std::os::unix::fs::FileTypeExt;
 
 pub fn cat(input: Parsing) {
-    // Handle invalid flags
-    if !input.flag.is_empty() {
-        eprintln!("cat: unrecognized option '{}'", input.flag[0]);
+    if !input.flags.is_empty() {
+        eprintln!("cat: unrecognized option '{}'", input.flags[0]);
         return;
     }
 
-    // No arguments => read from stdin
-    if input.arg.is_empty() {
+    if input.args.is_empty() {
         let stdin = io::stdin();
         let mut stdout = io::stdout();
         let mut buffer = [0u8; 1024];
@@ -36,7 +34,7 @@ pub fn cat(input: Parsing) {
     }
 
     // Process each file argument
-    for path in input.arg {
+    for path in input.args {
         match File::open(&path) {
             Ok(mut file) => {
                 // Check metadata (handle device or special files)

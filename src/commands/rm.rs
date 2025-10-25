@@ -1,27 +1,27 @@
 use std::fs;
 use std::path::Path;
 
-use crate::utils::Parsing;
+use crate::parser::Parsing;
 
 pub fn rm(data: Parsing) {
-    let recursive = if  data.flag.join("") == "-r".to_string() {
+    let recursive = if  data.flags.join("") == "-r".to_string() {
         true
     } else {
         false 
     } ;
-        if !recursive && ! data.flag.is_empty() {
-            println!("rm: invalid option -- {}", data.flag[0]);
+        if !recursive && ! data.flags.is_empty() {
+            println!("rm: invalid option -- {}", data.flags[0]);
             return
         }
     
-    if data.arg.is_empty() {
+    if data.args.is_empty() {
         eprintln!("rm: missing operand");
         return;
     }
 
     
 
-    for arg in data.arg {
+    for arg in data.args {
         let path = Path::new(&arg);
 
         if !path.exists() {

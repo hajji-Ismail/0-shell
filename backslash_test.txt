@@ -1,0 +1,17 @@
+echo \$HOME
+echo "\$HOME"
+echo "\n"
+echo '\$HOME'
+echo "\"" abc
+echo "\\"
+echo $MY_VAR
+echo ${MY_VAR}
+echo \$MY_VAR
+echo \${MY_VAR}
+echo "\$MY_VAR ${MY_VAR}"
+echo '$MY_VAR'
+echo $MY_VAR ${MY_VAR} \$MY_VAR \${MY_VAR} '$MY_VAR'
+echo ${} ???/
+
+
+
