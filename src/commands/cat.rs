@@ -5,13 +5,11 @@ use std::fs;
 use std::os::unix::fs::FileTypeExt;
 
 pub fn cat(input: Parsing) {
-    // Handle invalid flags
     if !input.flags.is_empty() {
         eprintln!("cat: unrecognized option '{}'", input.flags[0]);
         return;
     }
 
-    // No arguments => read from stdin
     if input.args.is_empty() {
         let stdin = io::stdin();
         let mut stdout = io::stdout();

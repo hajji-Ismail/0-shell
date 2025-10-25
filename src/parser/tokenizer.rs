@@ -5,22 +5,28 @@ pub fn tokenize(input: &str) -> Result<Vec<(String, bool)>, String> {
 
     loop {
         let trimmed_input = full_input.trim_end();
-        let trailing_backslash = trimmed_input.ends_with('\\');
+        let trailing_backslash = trimmed_input.ends_with('\\') && !trimmed_input.ends_with("\\\\");
 
         match internal_tokenize(&full_input) {
             Ok(tokens) => {
                 if trailing_backslash {
-                    // Remove the trailing backslash
-                    full_input.pop();
+                    full_input.pop(); // Remove the trailing backslash
                     print!("> ");
                     io::stdout().flush().unwrap();
 
                     let mut user_input = String::new();
-                    if io::stdin().read_line(&mut user_input).is_err() {
-                        return Err("Failed to read input".to_string());
+                    match io::stdin().read_line(&mut user_input) {
+                        Ok(_) => {
+                            if user_input.is_empty() {
+                                // Ctrl+D detected
+                                return Err("".to_string());
+                            }
+                            full_input.push_str(&user_input.trim_end());
+                        }
+                        Err(_) => {
+                            return Err("Failed to read input".to_string());
+                        }
                     }
-
-                    full_input.push_str(&user_input.trim_end());
                 } else {
                     return Ok(tokens);
                 }
@@ -29,17 +35,25 @@ pub fn tokenize(input: &str) -> Result<Vec<(String, bool)>, String> {
                 if quote_char == '\0' {
                     return Err("Bad substitution".to_string());
                 }
-
                 full_input.push('\n');
+
                 print!("{} ", if quote_char == '"' { "dquote>" } else { "quote>" });
                 io::stdout().flush().unwrap();
 
                 let mut user_input = String::new();
-                if io::stdin().read_line(&mut user_input).is_err() {
-                    return Err("Failed to read input".to_string());
-                }
+                match io::stdin().read_line(&mut user_input) {
+                    Ok(_) => {
+                        if user_input.is_empty() {
+                            // Ctrl+D detected
+                            return Err("".to_string());
+                        }
 
-                full_input.push_str(&user_input);
+                        full_input.push_str(&user_input.trim_end());
+                    }
+                    Err(_) => {
+                        return Err("Failed to read input".to_string());
+                    }
+                }
             }
         }
     }
