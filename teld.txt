@@ -5,8 +5,3 @@ echo "~"
 echo \~
 echo '\~'
 echo ~ $MY_VAR ~/path '~'
-
-
-
-
-
