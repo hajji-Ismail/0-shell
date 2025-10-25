@@ -4,47 +4,72 @@ use std::path:: PathBuf;
 use crate::parser::Parsing;
 
 pub fn cd(input: Parsing) {
-    if !input.flags.is_empty(){
+    if !input.flags.is_empty() {
         println!("bash: cd: {}: invalid option", input.flags[0]);
-        return
+        return;
     }
-    if input.args.len() > 1 {
+    if input.args.len() > 2 {
         println!("bash: cd: too many arguments");
-        return
+        return;
     }
-    // Determine the targset path
-    let targset = if let Some(first_args) = input.args.get(0) {
-        let p = first_args.trim();
 
+    // Handle the 2-argument substitution mode
+    let  target = if input.args.len() == 2 {
+        // Get current PWD as string
+        let pwd = match env::var("PWD") {
+            Ok(p) => p,
+            Err(_) => {
+                eprintln!("cd: PWD not set");
+                return;
+            }
+        };
 
-        // Handle "cd -" (go to previous directory)
-        if p == "-" {
-            match env::var("OLDPWD") {
-                Ok(oldpwd) => Path::new(&oldpwd).to_path_buf(),
-                Err(_) => {
-                    eprintln!("cd: OLDPWD not set");
-                    return;
+        let pattern = input.args[0].trim();
+        let replacement = input.args[1].trim();
+
+        // Check if pattern is in PWD
+        if !pwd.contains(pattern) {
+            eprintln!("cd: string not in pwd: {}", pattern);
+            return;
+        }
+
+        // Replace first occurrence
+        let new_path = pwd.replacen(pattern, replacement, 1);
+        PathBuf::from(new_path)
+    } else {
+        // Determine the target path for 0 or 1 arg
+        if let Some(first_arg) = input.args.get(0) {
+            let p = first_arg.trim();
+
+            // Handle "cd -" (go to previous directory)
+            if p == "-" {
+                match env::var("OLDPWD") {
+                    Ok(oldpwd) => PathBuf::from(oldpwd),
+                    Err(_) => {
+                        eprintln!("cd: OLDPWD not set");
+                        return;
+                    }
                 }
             }
-        }
-        // Handle "~" or "~/something"
-        else if p.starts_with('~') {
-            if let Ok(home) = env::var("HOME") {
-                let expanded = p.replacen("~", &home, 1);
-                Path::new(&expanded).to_path_buf()
-            } else {
-                Path::new("/").to_path_buf()
+            // Handle "~" or "~/something"
+            else if p.starts_with('~') {
+                if let Ok(home) = env::var("HOME") {
+                    let expanded = p.replacen("~", &home, 1);
+                    PathBuf::from(expanded)
+                } else {
+                    PathBuf::from("/")
+                }
             }
-        }
-        // Regular path
-        else {
-            Path::new(p).to_path_buf()
-        }
-    } else {
-        // No argsuments → go to $HOME or fallback to /
-        match env::var("HOME") {
-            Ok(home) => Path::new(&home).to_path_buf(),
-            Err(_) => Path::new("/").to_path_buf(),
+            // Regular path
+            else {
+                PathBuf::from(p)
+            }
+        } else {
+            // No arguments → go to $HOME or fallback to /
+            match env::var("HOME") {
+                Ok(home) => PathBuf::from(home),
+                Err(_) => PathBuf::from("/"),
+            }
         }
     };
 
@@ -52,12 +77,24 @@ pub fn cd(input: Parsing) {
     if let Ok(current) = env::current_dir() {
         unsafe {
             env::set_var("OLDPWD", current);
-            
         }
     }
 
     // Try to change directory
-    if let Err(e) = env::set_current_dir(&targset) {
-        eprintln!("cd: {}", e);
+    if let Err(e) = env::set_current_dir(&target) {
+        eprintln!("cd: {}: {}", target.display(), e);
+        return;
+    }
+
+    // Update PWD after successful change
+    if let Ok(new_pwd) = env::current_dir() {
+        unsafe {
+            env::set_var("PWD", new_pwd);
+        }
+    }
+
+    // For "cd -", print the new directory
+    if input.args.get(0).map_or(false, |arg| arg.trim() == "-") {
+        println!("{}", target.display());
     }
 }
