@@ -1,0 +1,73 @@
+Basic Navigation Tests
+
+cd /tmp
+cd
+cd ~
+cd ..
+cd .
+
+
+Path Resolution Tests
+
+cd ././.
+cd ../../
+cd 
+cd /
+
+Edge Case Paths 
+
+cd ////tmp
+cd /usr//bin
+cd /tmp//
+cd testdir//
+cd ././
+cd .././
+
+Special Directory Names
+
+cd "test dir"
+cd test-dir
+cd .testdir
+cd ..weird
+cd ...dots
+
+Boundary & Error Cases
+
+cd does_not_exist
+cd /path/that/does/not/exist
+cd somefile
+cd /root
+cd /tmp
+cd ../var
+cd ../..
+
+Complex Relative Paths
+
+cd testdir/subdir/deep
+cd ../../../
+cd testdir/../testdir/./subdir/../subdir/deep
+cd .
+cd ./.
+
+Root and Parent Edge Cases
+
+cd /
+cd ..
+cd ../../../../
+cd ../var/log/../../
+
+Home Directory Variants
+
+cd ~/
+cd ~/.
+
+Mixed Case Tests
+
+cd ../lib/../bin/./.
+
+Very Long Path Tests
+
+cd a/b/c/d/e/f/g/h/i/j/k/l/m/n/o/p/q/r/s/t/u/v/w/x/y/z
+
+cd ../../../../../../../../../../../../../../../../../../../../..
+
