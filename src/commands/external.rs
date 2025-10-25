@@ -1,4 +1,4 @@
-use nix::unistd::{ fork, ForkResult, execvp };
+use nix::unistd::{fork, ForkResult, execvp};
 use nix::sys::wait::wait;
 use std::ffi::CString;
 use std::env;
@@ -29,8 +29,8 @@ pub fn run_external_command(parsed: &Parsing) {
             let _ = wait();
         }
         Ok(ForkResult::Child) => {
-            // Execute command; on error print and exit
-            if let Err(_) = execvp(&CString::new(parsed.command.clone()).unwrap(), &args) {
+            // Execute command; execvp only returns on error
+            if execvp(&CString::new(parsed.command.clone()).unwrap(), &args).is_err() {
                 eprintln!("{}: command not found", parsed.command);
                 std::process::exit(1);
             }
