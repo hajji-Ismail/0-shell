@@ -55,22 +55,20 @@ fn print_path() {
     const BOLD: &str = "\x1b[1m";
     const RESET: &str = "\x1b[0m";
     const BLUE: &str = "\x1b[34m";
-    const CYAN: &str = "\x1b[36m";
 
     match std::env::var("PWD") {
         Ok(pwd) => {
-            print!("{}{}{}{}${} ", BOLD, BLUE, pwd, RESET, CYAN);
+            print!("{}{}{}{}$", BOLD, BLUE, pwd, RESET);
         }
         Err(_) => {
             match std::env::current_dir() {
                 Ok(path) => {
-                    print!("{}{}{}{}${} ", BOLD, BLUE, path.display(), RESET, CYAN);
+                    print!("{}{}{}{}$", BOLD, BLUE, path.display(), RESET);
                 }
                 Err(_) => {
-                    print!("{}${} ", BOLD, CYAN);
+                    print!("{}$", BOLD);
                 }
             }
         }
     }
-    print!("{}", RESET);
 }
