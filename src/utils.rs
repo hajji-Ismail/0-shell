@@ -51,7 +51,6 @@ pub fn input_loop() {
     }
 }
 fn print_path() {
-    // ANSI color codes
     const BOLD: &str = "\x1b[1m";
     const RESET: &str = "\x1b[0m";
     const BLUE: &str = "\x1b[34m";
