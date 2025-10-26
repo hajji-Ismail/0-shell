@@ -99,7 +99,11 @@ pub fn ls(tokens: Parsing) {
                                             } else if classify {
                                                 print_classified(&entry, &name);
                                             } else {
-                                                println!("{}", name);
+                                                if needs_quotes(&name) {
+                                                    println!("'{}'", name);
+                                                } else {
+                                                    println!("{}", name);
+                                                }
                                             }
                                         }
                                     }
@@ -193,14 +197,15 @@ fn print_long(metadata: &fs::Metadata, name: &str, classify: bool) {
         .as_secs();
     let datetime = Local.timestamp_opt(seconds as i64, 0).unwrap();
 
-    let size_or_dev = if metadata.file_type().is_block_device() || metadata.file_type().is_char_device() {
-        let rdev = metadata.rdev();
-        let major = libc::major(rdev);
-        let minor = libc::minor(rdev);
-        format!("{}, {}", major, minor)
-    } else {
-        metadata.len().to_string()
-    };
+    let size_or_dev =
+        if metadata.file_type().is_block_device() || metadata.file_type().is_char_device() {
+            let rdev = metadata.rdev();
+            let major = libc::major(rdev);
+            let minor = libc::minor(rdev);
+            format!("{}, {}", major, minor)
+        } else {
+            metadata.len().to_string()
+        };
 
     // Determine classify suffix
     let suffix = if classify {
@@ -218,19 +223,33 @@ fn print_long(metadata: &fs::Metadata, name: &str, classify: bool) {
     } else {
         ""
     };
-
-    print!(
-        "{}{} {:>2} {:<8} {:<8} {:>8} {} {}{}",
-        file_type,
-        perms,
-        metadata.nlink(),
-        user,
-        group,
-        size_or_dev,
-        datetime.format("%b %e %H:%M"),
-        name,
-        suffix
-    );
+    if needs_quotes(name) {
+        print!(
+            "{}{} {:>2} {:<8} {:<8} {:>8} {} '{}'{}",
+            file_type,
+            perms,
+            metadata.nlink(),
+            user,
+            group,
+            size_or_dev,
+            datetime.format("%b %e %H:%M"),
+            name,
+            suffix
+        );
+    } else {
+        print!(
+            "{}{} {:>2} {:<8} {:<8} {:>8} {} {}{}",
+            file_type,
+            perms,
+            metadata.nlink(),
+            user,
+            group,
+            size_or_dev,
+            datetime.format("%b %e %H:%M"),
+            name,
+            suffix
+        );
+    }
 
     // Add symlink target if it’s a link
     if metadata.file_type().is_symlink() {
@@ -262,8 +281,11 @@ fn print_classified(entry: &fs::DirEntry, name: &str) {
     } else {
         ""
     };
-
-    println!("{}{}", name, suffix);
+    if needs_quotes(name) {
+        println!("'{}'{}", name, suffix);
+    } else {
+        println!("{}{}", name, suffix);
+    }
 }
 
 fn total(paths: Vec<String>, all: bool) {
@@ -296,4 +318,10 @@ fn total(paths: Vec<String>, all: bool) {
     }
 
     println!("total {}", total_blocks / 2);
+}
+
+fn needs_quotes(name: &str) -> bool {
+    let s = name.to_string();
+    s.chars()
+        .any(|c| c.is_whitespace() || c.is_control() || c == '\'' || c == '"' || c == '\\')
 }

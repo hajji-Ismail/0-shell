@@ -1,0 +1,12 @@
+mkdir "dir with spaces"
+touch "file with spaces.txt"
+ls 
+
+
+touch $'u\u0301'   # composed vs decomposed
+
+ln -s ex link_to_ex
+
+ln -s nonexistent broken
+
+./your-shell ls -lFa
