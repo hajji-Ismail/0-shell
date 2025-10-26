@@ -17,7 +17,7 @@ pub fn mkdir(input : Parsing){
                 continue;
             },
             Err(err)=> {
-                println!("mkdir: cannot create directory {err}");
+                println!("mkdir: {err}");
                 continue;
             }
         }
