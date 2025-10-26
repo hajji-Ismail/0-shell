@@ -1,5 +1,6 @@
 use std::env;
-use std::path:: PathBuf;
+use std::path::PathBuf;
+use std::fs;
 
 use crate::parser::Parsing;
 
@@ -13,9 +14,7 @@ pub fn cd(input: Parsing) {
         return;
     }
 
-    // Handle the 2-argument substitution mode
-    let  target = if input.args.len() == 2 {
-        // Get current PWD as string
+    let target = if input.args.len() == 2 {
         let pwd = match env::var("PWD") {
             Ok(p) => p,
             Err(_) => {
@@ -37,11 +36,9 @@ pub fn cd(input: Parsing) {
         let new_path = pwd.replacen(pattern, replacement, 1);
         PathBuf::from(new_path)
     } else {
-        // Determine the target path for 0 or 1 arg
         if let Some(first_arg) = input.args.get(0) {
             let p = first_arg.trim();
 
-            // Handle "cd -" (go to previous directory)
             if p == "-" {
                 match env::var("OLDPWD") {
                     Ok(oldpwd) => PathBuf::from(oldpwd),
@@ -50,22 +47,10 @@ pub fn cd(input: Parsing) {
                         return;
                     }
                 }
-            }
-            // Handle "~" or "~/something"
-            else if p.starts_with('~') {
-                if let Ok(home) = env::var("HOME") {
-                    let expanded = p.replacen("~", &home, 1);
-                    PathBuf::from(expanded)
-                } else {
-                    PathBuf::from("/")
-                }
-            }
-            // Regular path
-            else {
+            } else {
                 PathBuf::from(p)
             }
         } else {
-            // No arguments → go to $HOME or fallback to /
             match env::var("HOME") {
                 Ok(home) => PathBuf::from(home),
                 Err(_) => PathBuf::from("/"),
@@ -73,27 +58,47 @@ pub fn cd(input: Parsing) {
         }
     };
 
-    // Store current directory as OLDPWD before changing
     if let Ok(current) = env::current_dir() {
         unsafe {
             env::set_var("OLDPWD", current);
         }
     }
 
-    // Try to change directory
+    // Compute absolute path for symlink case
+    let absolute_target = if target.is_absolute() {
+        target.clone()
+    } else {
+        match env::current_dir() {
+            Ok(current) => current.join(&target),
+            Err(_) => {
+                eprintln!("cd: cannot access current directory");
+                return;
+            }
+        }
+    };
+
     if let Err(e) = env::set_current_dir(&target) {
         eprintln!("cd: {}: {}", target.display(), e);
         return;
     }
 
-    // Update PWD after successful change
-    if let Ok(new_pwd) = env::current_dir() {
+    if
+        fs
+            ::symlink_metadata(&target)
+            .map(|m| m.is_symlink())
+            .unwrap_or(false)
+    {
         unsafe {
-            env::set_var("PWD", new_pwd);
+            env::set_var("PWD", &absolute_target);
+        }
+    } else {
+        if let Ok(new_pwd) = env::current_dir() {
+            unsafe {
+                env::set_var("PWD", new_pwd);
+            }
         }
     }
 
-    // For "cd -", print the new directory
     if input.args.get(0).map_or(false, |arg| arg.trim() == "-") {
         println!("{}", target.display());
     }
