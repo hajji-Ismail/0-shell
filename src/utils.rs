@@ -4,7 +4,7 @@ use crate::parser::*;
 
 pub fn input_loop() {
     'main: loop {
-        print!("$ ");
+        print_path();
         io::stdout().flush().unwrap();
 
         let mut user_input = String::new();
@@ -17,27 +17,26 @@ pub fn input_loop() {
             Ok(_) => {
                 let input = user_input.trim();
                 if input == "exit" {
-                    break 'main; 
+                    break 'main;
                 }
                 if input != "" {
                     let parsing_res = parse(input);
                     match parsing_res {
-                        Ok(res) => match res.command.as_str() {
-                            "pwd" => commands::pwd::pwd(res),
-                            "echo" => commands::echo::echo(res.args),
-                            "cd" => commands::cd::cd(res),
-                            "rm" => commands::rm::rm(res),
-                            "ls" => commands::ls::ls(res),
-                            "mkdir"=> commands::mkdir::mkdir(res),
-                            "cp" => cp::cp(res),
-                            "cat"=>cat::cat(res),
-                            "mv"=> mv::mv(res),
-                          
-                            _=>external::run_external_command(&res),
+                        Ok(res) =>
+                            match res.command.as_str() {
+                                "pwd" => commands::pwd::pwd(res),
+                                "echo" => commands::echo::echo(res.args),
+                                "cd" => commands::cd::cd(res),
+                                "rm" => commands::rm::rm(res),
+                                "ls" => commands::ls::ls(res),
+                                "mkdir" => commands::mkdir::mkdir(res),
+                                "cp" => cp::cp(res),
+                                "cat" => cat::cat(res),
+                                "mv" => mv::mv(res),
 
-                            
-                        }, 
-                        Err(err)=> {
+                                _ => external::run_external_command(&res),
+                            }
+                        Err(err) => {
                             println!("{err}");
                             continue;
                         }
@@ -51,4 +50,27 @@ pub fn input_loop() {
         }
     }
 }
+fn print_path() {
+    // ANSI color codes
+    const BOLD: &str = "\x1b[1m";
+    const RESET: &str = "\x1b[0m";
+    const BLUE: &str = "\x1b[34m";
+    const CYAN: &str = "\x1b[36m";
 
+    match std::env::var("PWD") {
+        Ok(pwd) => {
+            print!("{}{}{}{}${} ", BOLD, BLUE, pwd, RESET, CYAN);
+        }
+        Err(_) => {
+            match std::env::current_dir() {
+                Ok(path) => {
+                    print!("{}{}{}{}${} ", BOLD, BLUE, path.display(), RESET, CYAN);
+                }
+                Err(_) => {
+                    print!("{}${} ", BOLD, CYAN);
+                }
+            }
+        }
+    }
+    print!("{}", RESET);
+}
