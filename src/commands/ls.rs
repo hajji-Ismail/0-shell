@@ -115,7 +115,6 @@ pub fn ls(tokens: Parsing) {
                                 println!();
                             }
                         } else {
-                            // Path is a file
                             if long {
                                 print_long(&metadata, path, classify);
                             } else if classify {
