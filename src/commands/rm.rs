@@ -24,6 +24,11 @@ pub fn rm(data: Parsing) {
 
         if path.is_dir() {
             if recursive {
+                if     arg.bytes().all(|b| b == b'.' || b == b'/') {
+                    println!("rm: refusing to remove '.' or '..' directory: skipping {}",arg);
+                    continue;
+
+                }
                 if let Err(e) = fs::remove_dir_all(&path) {
                     eprintln!("rm: cannot remove '{}': {}", arg, e);
                 }
