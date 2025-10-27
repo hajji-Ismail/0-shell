@@ -81,7 +81,7 @@ fn internal_tokenize(input: &str) -> Result<Vec<(String, bool)>, char> {
                 if in_quotes && quote_char == '"' {
                     if let Some(&next_char) = chars.peek() {
                         match next_char {
-                            '"' | '\\' | '$' | '`' => {
+                            '"' | '\\' | '$'  => {
                                 current.push(chars.next().unwrap());
                             }
                             _ => {
