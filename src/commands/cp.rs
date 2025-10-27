@@ -27,7 +27,7 @@ pub fn cp(input: Parsing) {
             }
             let src_path = Path::new(src);
             let dest_path = if is_dir{
-                Path::new(destination).join(src_path.file_name().unwrap())
+                Path::new(destination).join(src_path.file_name().unwrap_or_default())
             } else {
                 Path::new(destination).to_path_buf()
             };
