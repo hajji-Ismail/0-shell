@@ -1,7 +1,7 @@
 # 0-Shell 
 
 [![Rust](https://img.shields.io/badge/Rust-1.72.0-orange?logo=rust)](https://www.rust-lang.org/)  
-[![License](https://img.shields.io/badge/License-MIT-blue)](LICENSE)
+
 
 A **minimalist Unix-like shell implemented in Rust**, designed to execute core Unix commands using system-level Rust abstractions—without relying on external binaries or built-in shells like bash/sh.  
 
@@ -17,7 +17,6 @@ Inspired by [BusyBox](https://busybox.net/), this shell helps you learn Unix sys
 - Graceful handling of Ctrl+D (EOF)  
 - Prints error for unrecognized commands:  
   `Command '<name>' not found`  
-- Lightweight and standalone—no external binaries required  
 
 ---
 
