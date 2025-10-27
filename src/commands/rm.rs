@@ -4,17 +4,10 @@ use std::path::Path;
 use crate::parser::Parsing;
 
 pub fn rm(data: Parsing) {
-    let recursive = if  data.flags.join("") == "-r".to_string() {
-        true
-    } else {
-        false 
-    } ;
-        if !recursive && ! data.flags.is_empty() {
-            println!("rm: invalid option -- {}", data.flags[0]);
-            return
-        }
-    
-    if data.args.is_empty() {
+
+   match flag(data.flags) {
+    Ok(recursive) => {
+         if data.args.is_empty() {
         eprintln!("rm: missing operand");
         return;
     }
@@ -41,4 +34,28 @@ pub fn rm(data: Parsing) {
             eprintln!("rm: cannot remove '{}': {}", arg, e);
         }
     }
+
+    } , 
+    Err( err) => {
+        println!("{err}");
+    }
+
+   }
+    
+   
+}
+fn flag(flags : Vec<String>) ->Result<bool, String> {
+    let mut recursive = false ;
+     for flag in flags {
+     if let Some(sub_flag) = flag.strip_prefix('-') {
+            for c in sub_flag.chars() {
+                match c {
+                    'r' => recursive = true,
+
+                    _ => return Err(format!("rm: invalid option -- '{}'", c)),
+                }
+            }
+        }
+    }
+    Ok(recursive)
 }
