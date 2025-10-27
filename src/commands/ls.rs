@@ -3,6 +3,7 @@ use chrono::{Local, TimeZone};
 use nix::libc;
 use std::fs;
 use std::os::unix::fs::{FileTypeExt, MetadataExt, PermissionsExt};
+use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 use users::{get_group_by_gid, get_user_by_uid};
 
@@ -64,11 +65,12 @@ pub fn ls(tokens: Parsing) {
                             if all {
                                 if long {
                                     if let Ok(meta_current) = fs::metadata(path) {
-                                        print_long(&meta_current, ".", classify);
+                                        print_long(&meta_current, ".", PathBuf::from(path), classify);
+
                                     }
                                     let parent_path = format!("{}/..", path);
                                     if let Ok(meta_parent) = fs::metadata(&parent_path) {
-                                        print_long(&meta_parent, "..", classify);
+                                         print_long(&meta_parent, "..", PathBuf::from(&parent_path), classify);
                                     }
                                 } else {
                                     if classify {
@@ -95,7 +97,7 @@ pub fn ls(tokens: Parsing) {
 
                                         if let Ok(meta) = entry.metadata() {
                                             if long {
-                                                print_long(&meta, &name, classify);
+                                                print_long(&meta, &name,entry.path() ,classify);
                                             } else if classify {
                                                 print_classified(&entry, &name);
                                             } else {
@@ -116,7 +118,7 @@ pub fn ls(tokens: Parsing) {
                             }
                         } else {
                             if long {
-                                print_long(&metadata, path, classify);
+                                print_long(&metadata, path, PathBuf::from(path),classify);
                             } else if classify {
                                 let ft = metadata.file_type();
                                 let suffix = if ft.is_dir() {
@@ -144,7 +146,7 @@ pub fn ls(tokens: Parsing) {
     }
 }
 
-fn print_long(metadata: &fs::Metadata, name: &str, classify: bool) {
+fn print_long(metadata: &fs::Metadata, name: &str,full_path : PathBuf, classify: bool) {
     let file_type = {
         let ft = metadata.file_type();
         if ft.is_dir() {
@@ -249,14 +251,15 @@ fn print_long(metadata: &fs::Metadata, name: &str, classify: bool) {
             suffix
         );
     }
-
-    // Add symlink target if it’s a link
     if metadata.file_type().is_symlink() {
-        if let Ok(target) = fs::read_link(name) {
+     
+ 
+        if let Ok(target) = fs::read_link(&full_path) {
             print!(" -> {}", target.display());
-        }
+        } 
+        
+        
     }
-
     println!();
 }
 
