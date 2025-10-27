@@ -1,4 +1,0 @@
-piping panic
-
-mv sss.txt tttt
-
