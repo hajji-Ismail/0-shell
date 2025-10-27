@@ -33,7 +33,7 @@ pub fn tokenize(input: &str) -> Result<Vec<(String, bool)>, String> {
             }
             Err(quote_char) => {
                 if quote_char == '\0' {
-                    return Err("Bad substitution".to_string());
+                    return Err("0-shell: Bad substitution".to_string());
                 }
                 full_input.push('\n');
 
