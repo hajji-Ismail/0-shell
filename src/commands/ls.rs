@@ -52,7 +52,15 @@ pub fn ls(tokens: Parsing) {
             for (i, path) in paths.iter().enumerate() {
                 match fs::metadata(path) {
                     Ok(metadata) => {
+                        let mode = metadata.permissions().mode();
+                    
+
                         if metadata.is_dir() {
+                             if mode & 0o100 == 0 ||  mode & 0o400 == 0{
+                        println!("ls: cannot access '{path}'': Permission denied");
+                        continue;
+
+                      }
                             if paths.len() > 1 {
                                 println!("{}:", path);
                             }
