@@ -1,0 +1,13 @@
+[1m[34m/home/ihajji/0-shell[0m$backslash_test.txt
+Cargo.lock
+Cargo.toml
+cat_test.txt
+cd.txt
+ls.txt
+mkdirtest.txt
+mv.txt
+src
+target
+teld_test.txt
+todo.txt
+[1m[34m/home/ihajji/0-shell[0m$

@@ -1,0 +1,8 @@
+piping panic
+
+mv sss.txt tttt
+
+rm -r ..
+rm -r .././../../.. ..
+
+rm -r -r tttt (should work) 
